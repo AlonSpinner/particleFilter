@@ -1,17 +1,15 @@
 from typing import Callable
 import numpy as np
 
-class Map:
-    def __init__(self,forward_measurement_model : Callable):
-        self.forward_measurement_model : Callable = forward_measurement_model
-
 class ParticleFilter:
-    def __init__(self,m: Map ,initial_states : list):
+    def __init__(self,m ,initial_states : list):
         self.N_PARTICLE : int = len(initial_states) #amount of particles
         self.STATE_SIZE : int = initial_states[0].size
-        self.particles = initial_states
+        
+        self.particles = initial_states #particle must have method createAlike(params)
+        self.m : m # map must have method forward_measurement_model(x)
+        
         self.weights : np.ndarray = np.ones((self.N_PARTICLE,1)) * 1/self.N_PARTICLE
-        self.m : Map = m
         self.n_threshold : float = self.N_PARTICLE/2.0 #threshold for performing resampling
         return
 

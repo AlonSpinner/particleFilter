@@ -1,7 +1,8 @@
 import numpy as np
 from particleFilter.geometry import pose2
 
-class beacons_2D:
+
+class beacons_2D():
     def __init__(self,beacons : np.ndarray):
         self.beacons : np.ndarray = beacons #shape(m,2,1)
         self.beaconsRange : float = 10.0
