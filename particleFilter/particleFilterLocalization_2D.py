@@ -3,14 +3,14 @@ import numpy as np
 
 class Map:
     def __init__(self,forward_measurement_model : Callable):
-        self.forward_measurement_model : Callable
+        self.forward_measurement_model : Callable = forward_measurement_model
 
 class ParticleFilter:
-    def __init__(self,m: Map ,initial_states : list, noisey_motion_model : Callable):
+    def __init__(self,m: Map ,initial_states : list):
         self.N_PARTICLE : int = len(initial_states) #amount of particles
+        self.STATE_SIZE : int = initial_states[0].size
         self.particles = initial_states
-        self.weights = np.ones((self.N_PARTICLE,1)) * 1/self.N_PARTICLE
-        self.noisey_motion_model : Callable = noisey_motion_model
+        self.weights : np.ndarray = np.ones((self.N_PARTICLE,1)) * 1/self.N_PARTICLE
         self.m : Map = m
         self.n_threshold : float = self.N_PARTICLE/2.0 #threshold for performing resampling
         return
@@ -18,9 +18,13 @@ class ParticleFilter:
     def step(self,z,z_cov,
                     u,u_cov):
         #update particles
-        weights = np.zeros((self.N,1)) #store weights in an array for resampling
+        weights = np.zeros((self.N_PARTICLE,1)) #store weights in an array for resampling
         for i,p in enumerate(self.particles):
-            p = self.noisey_motion_model(p,u,u_cov)
+            
+            noise = np.random.multivariate_normal(np.zeros((self.STATE_SIZE)),u_cov)
+            noise = p.__init__(noise[0],noise[1],noise[2])
+            p = p + (u + noise)
+            
             zhat = self.m.forward_measurement_model(p)
             self.weights[i] *= gauss_likelihood(z,zhat,z_cov)
 
@@ -51,7 +55,7 @@ class ParticleFilter:
 
 def gauss_likelihood(x : np.ndarray, mu : np.ndarray, cov : np.ndarray):
     k = x.size
-    num =  np.exp(-0.5*(x-mu).T @ cov @ (x-mu))
+    num =  np.exp(-0.5*(x-mu).T @ np.linalg.inv(cov) @ (x-mu))
     den = np.sqrt(2.0 * np.pi ** k * np.linalg.det(cov))
     p = num/den
     return p
