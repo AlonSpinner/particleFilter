@@ -17,14 +17,17 @@ class ParticleFilter:
 
     def step(self,z,z_cov,
                     u,u_cov):
+        
         #update particles
         weights = np.zeros((self.N_PARTICLE,1)) #store weights in an array for resampling
         for i,p in enumerate(self.particles):
             
+            #create proposal distribution
             noise = np.random.multivariate_normal(np.zeros((self.STATE_SIZE)),u_cov)
-            noise = p.__init__(noise[0],noise[1],noise[2])
+            noise = p.createAlike(noise[0],noise[1],noise[2]) #allow for all kinds of classes
             p = p + (u + noise)
             
+            #create target distribution
             zhat = self.m.forward_measurement_model(p)
             self.weights[i] *= gauss_likelihood(z,zhat,z_cov)
 

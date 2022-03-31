@@ -31,6 +31,28 @@ class pose2:
                         np.asscalar(invt[1]),
                         invtheta)
 
+    def transformFrom(self,p: np.ndarray):
+        # p - np.array((2,-1))
+        # Return point coordinates in global frame.
+        return self.R() @ p - self.t()
+
+    def transformTo(self,p : np.ndarray):
+        # p - np.array((2,-1))
+        # Return world points coordinates in pose coordinate frame
+        return self.inverse().transformFrom(p)
+
+    def bearing(self, p : np.ndarray):
+        # p - np.array((2,-1))
+        # Return angles to world points
+        p = self.transformTo(p)
+        return np.arctan2(p[1,:],p[0,:])
+
+    def range(self, p : np.ndarray):
+        # p - np.array((2,-1))
+        # Return angles to world points
+        p = self.transformTo(p)
+        return np.hypot(p[0,:],p[1,:])
+
     def __add__(self,other):
         #a+b
         #self  = wTa, other = aTb
@@ -50,6 +72,9 @@ class pose2:
         x = aTb[0,2]
         y = aTb[1,2]
         theta = np.arctan2(aTb[1,0],aTb[0,0])
+        return pose2(x,y,theta)
+
+    def createAlike(x,y,theta):
         return pose2(x,y,theta)
 
     def __str__(self):
