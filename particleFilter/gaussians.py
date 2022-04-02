@@ -4,7 +4,7 @@ def gauss_likelihood(x : np.ndarray, mu : np.ndarray, cov : np.ndarray, pseudo =
     if pseudo:
         p = np.exp(-0.5*(x-mu).T @ np.linalg.inv(cov) @ (x-mu))
     else:
-        k = x.size
+        k = x.size/2
         num =  np.exp(-0.5*(x-mu).T @ np.linalg.inv(cov) @ (x-mu))
         den = np.sqrt(2.0 * np.pi ** k * np.linalg.det(cov))
         p = num/den

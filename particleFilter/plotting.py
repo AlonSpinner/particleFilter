@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Ellipse
 from particleFilter.geometry import pose2
 
-def plot_cov_ellipse(pos, cov, nstd=1, ax=None, facecolor = 'none',edgecolor = 'b' ,  **kwargs):
+def plot_cov_ellipse(ax, pos, cov, nstd=1, facecolor = 'none',edgecolor = 'b' ,  **kwargs):
         #slightly edited from https://stackoverflow.com/questions/12301071/multidimensional-confidence-intervals
         '''
         Plots an `nstd` sigma error ellipse based on the specified covariance
@@ -12,12 +12,11 @@ def plot_cov_ellipse(pos, cov, nstd=1, ax=None, facecolor = 'none',edgecolor = '
 
         Parameters
         ----------
+            ax : The axis that the ellipse will be plotted on.
             pos : The location of the center of the ellipse. Expects a 2-element
                 sequence of [x0, y0].
             cov : The 2x2 covariance matrix to base the ellipse on
             nstd : The radius of the ellipse in numbers of standard deviations.
-            ax : The axis that the ellipse will be plotted on. If not provided, we won't plot.
-            Additional keyword arguments are pass on to the ellipse patch.
 
         Returns
         -------
@@ -35,10 +34,9 @@ def plot_cov_ellipse(pos, cov, nstd=1, ax=None, facecolor = 'none',edgecolor = '
                         facecolor = facecolor, 
                         edgecolor=edgecolor, **kwargs)
 
-        if ax is not None:
-            ax.add_patch(ellip)
+        graphics = ax.add_patch(ellip)
         
-        return ellip
+        return graphics
 
 def spawnWorld(xrange = None, yrange = None):
 
@@ -57,3 +55,14 @@ def plot_pose2(ax, x : list[pose2],  color = 'k'):
     u = np.cos(locals[:,2])
     v = np.sin(locals[:,2])
     return ax.quiver(locals[:,0],locals[:,1],u,v, color = color)
+
+def plot_pose2_weight_distribution(particles, weights, x_gt = None):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection = '3d')
+    ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
+    locals = np.array([p.local() for p in particles])
+    ax.scatter(locals[:,0],locals[:,1],locals[:,2], c = weights)
+
+    if x_gt is not None:
+        ax.scatter(x_gt.x,x_gt.y,x_gt.theta)
+

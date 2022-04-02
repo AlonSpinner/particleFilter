@@ -43,7 +43,7 @@ class pose2:
     def transformFrom(self,p: np.ndarray):
         # p - np.array((2,-1))
         # Return point coordinates in global frame.
-        return self.R() @ p - self.t()
+        return self.R() @ p + self.t()
 
     def transformTo(self,p : np.ndarray):
         # p - np.array((2,-1))
@@ -52,13 +52,13 @@ class pose2:
 
     def bearing(self, p : np.ndarray):
         # p - np.array((2,-1))
-        # Return angles to world points
+        # Return angles to p given in world points [-pi,pi]
         p = self.transformTo(p)
         return np.arctan2(p[1,:],p[0,:])
 
     def range(self, p : np.ndarray):
         # p - np.array((2,-1))
-        # Return angles to world points
+        # Return range of p given inworld points
         p = self.transformTo(p)
         return np.hypot(p[0,:],p[1,:])
 
