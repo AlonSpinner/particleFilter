@@ -1,8 +1,8 @@
 import numpy as np
-from sklearn.preprocessing import scale
 from particleFilter.maps import bearingBeacons_2D
 from particleFilter.geometry import pose2
-from particleFilter.particleFilterLocalization_2D import ParticleFilter
+from particleFilter.filters import pf_vanila_SE2
+import particleFilter.plotting as plotting
 import matplotlib.pyplot as plt
 
 #--------build map
@@ -31,21 +31,13 @@ for i in range(100):
     y = np.random.uniform(-3,3)
     theta = np.random.uniform(-np.pi,np.pi)
     initialParticles.append(pose2(x,y,theta))
-pf = ParticleFilter(modelMap,initialParticles)
+pf = pf_vanila_SE2(modelMap,initialParticles)
 
 #----- prep visuals
-def plotParticles(ax : plt.Axes ,particles : list[pose2]):
-    locals = np.array([p.local() for p in particles])
-    u = np.cos(locals[:,2])
-    v = np.sin(locals[:,2])
-    return ax.quiver(locals[:,0],locals[:,1],u,v)
-
-def plotGT(ax : plt.Axes, x : pose2):
-    return ax.quiver(x.x,x.y,np.cos(x.theta),np.sin(x.theta), color = 'r')
-
 ax = modelMap.show(xrange = (-3,3), yrange = (-3,3))
-graphics_particles = plotParticles(ax, pf.particles)
-graphocs_gt = plotGT(ax,gt_x0)
+graphics_particles = plotting.plot_pose2(ax,pf.particles)
+graphocs_gt = plotting.plot_pose2(ax,[gt_x0],color = 'r')
+plt.draw(); plt.pause(0.1)
 
 #------ run simulation
 with plt.ion():
@@ -62,13 +54,14 @@ with plt.ion():
         z_noise = np.random.multivariate_normal(z.squeeze(), z_cov).reshape(-1,1)
         
         pf.step(z_noise,z_cov,u,U_COV)
+        pf.low_variance_sampler()
         mu, cov = pf.bestEstimate()
 
         #add visuals
         graphics_particles.remove()
         graphocs_gt.remove()
-        graphics_particles = plotParticles(ax, pf.particles)
-        graphocs_gt = plotGT(ax,gt_x0)
+        graphics_particles = plotting.plot_pose2(ax,pf.particles)
+        graphocs_gt = plotting.plot_pose2(ax,[gt_x0],color = 'r')
         plt.pause(0.1)
 
 

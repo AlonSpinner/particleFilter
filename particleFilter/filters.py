@@ -1,11 +1,12 @@
 import numpy as np
 from particleFilter.geometry import pose2
 from particleFilter.maps import Map
+from particleFilter.gaussians import gauss_likelihood, gauss_fit
 
-class ParticleFilter:
+class pf_vanila_SE2:
     def __init__(self,m : Map ,initial_states : list[pose2]):
         self.N_PARTICLE : int = len(initial_states) #amount of particles
-        self.STATE_SIZE : int = initial_states[0].size
+        self.STATE_SIZE : int = 3
         
         self.particles = initial_states
         self.m = m # map must have method forward_measurement_model(x)
@@ -28,7 +29,7 @@ class ParticleFilter:
             
             #create target distribution
             zhat = self.m.forward_measurement_model(self.particles[i])
-            self.weights[i] *= np.asscalar(gauss_likelihood(z,zhat,z_cov))
+            self.weights[i] *= gauss_likelihood(z,zhat,z_cov)
 
         #normalize
         self.weights = self.weights/(self.weights.sum())# + self.EPS)
@@ -55,24 +56,6 @@ class ParticleFilter:
         self.weights = np.ones(self.N_PARTICLE) * 1/self.N_PARTICLE
 
     def bestEstimate(self):
-        #not using lie algebra here... whatever
-
-        #state expactancy E(x)
-        mu = np.zeros(self.STATE_SIZE)
-        for p, w in zip(self.particles, self.weights):
-            mu += w * p.local()
-
-        #compute covariance E(x-E(x) @ (x-E(x).T) )
-        cov = np.zeros((self.STATE_SIZE,self.STATE_SIZE))
-        for p,w in zip(self.particles,self.weights):
-            dx = (p.local()-mu).reshape(-1,1)
-            cov += w * dx @ dx.T
-
+        locals = np.array([p.local() for p in self.particles]).T
+        mu, cov = gauss_fit(locals, self.weights)       
         return mu,cov
-
-def gauss_likelihood(x : np.ndarray, mu : np.ndarray, cov : np.ndarray):
-    k = x.size
-    num =  np.exp(-0.5*(x-mu).T @ np.linalg.inv(cov) @ (x-mu))
-    den = np.sqrt(2.0 * np.pi ** k * np.linalg.det(cov))
-    p = num/den
-    return p
