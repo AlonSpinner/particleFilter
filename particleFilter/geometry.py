@@ -1,6 +1,10 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 class pose2:
+    
+    size = 3 #state size
+
     def __init__(self,x,y,theta):
         #worldTx = [wRx , t^w_w->x]
         self.x = x
@@ -13,12 +17,18 @@ class pose2:
 
     def t(self):
         return np.array([[self.x],
-                         [self.y]])
+                         [self.y]])                   
 
     def T(self):
         M2x3 = np.hstack([self.R(),self.t()])
         M1x3 = np.array([[0, 0, 1]])
         return np.vstack([M2x3,M1x3])
+
+    def retract(self): #LieAlgebra ExpMap
+        return self.T()
+
+    def local(self): #LieAlgebra LogMap
+        return np.array([self.x,self.y,self.theta])
 
     def inverse(self):
         invR = self.R().T
@@ -74,8 +84,6 @@ class pose2:
         theta = np.arctan2(aTb[1,0],aTb[0,0])
         return pose2(x,y,theta)
 
-    def createAlike(x,y,theta):
-        return pose2(x,y,theta)
-
     def __str__(self):
         return f" x = {self.x}, y = {self.y}, theta = {self.theta}"
+

@@ -1,51 +1,51 @@
-from typing import Callable
 import numpy as np
+from particleFilter.geometry import pose2
+from particleFilter.maps import Map
 
 class ParticleFilter:
-    def __init__(self,m ,initial_states : list):
+    def __init__(self,m : Map ,initial_states : list[pose2]):
         self.N_PARTICLE : int = len(initial_states) #amount of particles
         self.STATE_SIZE : int = initial_states[0].size
         
-        self.particles = initial_states #particle must have method createAlike(params)
-        self.m : m # map must have method forward_measurement_model(x)
+        self.particles = initial_states
+        self.m = m # map must have method forward_measurement_model(x)
         
-        self.weights : np.ndarray = np.ones((self.N_PARTICLE,1)) * 1/self.N_PARTICLE
-        self.n_threshold : float = self.N_PARTICLE/2.0 #threshold for performing resampling
+        self.weights : np.ndarray = np.ones(self.N_PARTICLE) * 1/self.N_PARTICLE
+        self.ETA_THRESHOLD : float = 2.0/self.N_PARTICLE #threshold for performing resampling
+        self.EPS = 1e-10
         return
 
     def step(self,z,z_cov,
                     u,u_cov):
         
         #update particles
-        weights = np.zeros((self.N_PARTICLE,1)) #store weights in an array for resampling
         for i,p in enumerate(self.particles):
             
             #create proposal distribution
             noise = np.random.multivariate_normal(np.zeros((self.STATE_SIZE)),u_cov)
-            noise = p.createAlike(noise[0],noise[1],noise[2]) #allow for all kinds of classes
+            noise = pose2(noise[0],noise[1],noise[2])
             p = p + (u + noise)
             
             #create target distribution
             zhat = self.m.forward_measurement_model(p)
-            self.weights[i] *= gauss_likelihood(z,zhat,z_cov)
+            self.weights[i] *= np.asscalar(gauss_likelihood(z,zhat,z_cov))
 
         #normalize
-        self.weights = self.weights/self.weights.sum()
+        self.weights = self.weights/(self.weights.sum())# + self.EPS)
 
         #resample
-        #attempts to draw particle i with state x such that p(x) ~ w
-        n_eff = self.weights.T @ weights
-        if n_eff < self.n_threshold:
+        n_eff = self.weights.dot(self.weights)
+        if n_eff < self.ETA_THRESHOLD:
             self.low_variance_sampler()
 
     def low_variance_sampler(self):
-        r = np.random.rand()/self.N_PARTICLE
-        c = self.particles[0]
+        r = np.random.uniform()/self.N_PARTICLE
         idx = 0
+        c = self.weights[idx]
         new_particles = []
         for i in range(self.N_PARTICLE):
-            r += 1/self.N_PARTICLE
-            while r > c:
+            u = r + i*1/self.N_PARTICLE
+            while u > c:
                 idx += 1
                 c += self.weights[idx]
             new_particles.append(self.particles[idx])
@@ -53,6 +53,21 @@ class ParticleFilter:
         self.particles = new_particles
         self.weights = np.ones((self.N_PARTICLE,1)) * 1/self.N_PARTICLE
 
+    def bestEstimate(self):
+        #not using lie algebra here... whatever
+
+        #state expactancy E(x)
+        mu = np.zeros(self.STATE_SIZE)
+        for p, w in zip(self.particles, self.weights):
+            mu += w * p.local()
+
+        #compute covariance E(x-E(x) @ (x-E(x).T) )
+        cov = np.zeros((self.STATE_SIZE,self.STATE_SIZE))
+        for p,w in zip(self.particles,self.weights):
+            dx = (p.local()-mu).reshape(-1,1)
+            cov += w * dx @ dx.T
+
+        return mu,cov
 
 def gauss_likelihood(x : np.ndarray, mu : np.ndarray, cov : np.ndarray):
     k = x.size
