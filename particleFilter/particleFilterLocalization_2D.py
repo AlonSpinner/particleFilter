@@ -19,15 +19,15 @@ class ParticleFilter:
                     u,u_cov):
         
         #update particles
-        for i,p in enumerate(self.particles):
+        for i in range(self.N_PARTICLE):
             
             #create proposal distribution
             noise = np.random.multivariate_normal(np.zeros((self.STATE_SIZE)),u_cov)
             noise = pose2(noise[0],noise[1],noise[2])
-            p = p + (u + noise)
+            self.particles[i] = self.particles[i] + (u + noise)
             
             #create target distribution
-            zhat = self.m.forward_measurement_model(p)
+            zhat = self.m.forward_measurement_model(self.particles[i])
             self.weights[i] *= np.asscalar(gauss_likelihood(z,zhat,z_cov))
 
         #normalize
@@ -36,6 +36,7 @@ class ParticleFilter:
         #resample
         n_eff = self.weights.dot(self.weights)
         if n_eff < self.ETA_THRESHOLD:
+            print('resampling')
             self.low_variance_sampler()
 
     def low_variance_sampler(self):
@@ -51,7 +52,7 @@ class ParticleFilter:
             new_particles.append(self.particles[idx])
         
         self.particles = new_particles
-        self.weights = np.ones((self.N_PARTICLE,1)) * 1/self.N_PARTICLE
+        self.weights = np.ones(self.N_PARTICLE) * 1/self.N_PARTICLE
 
     def bestEstimate(self):
         #not using lie algebra here... whatever
