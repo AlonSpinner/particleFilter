@@ -61,8 +61,9 @@ def plot_pose2_weight_distribution(particles, weights, x_gt = None):
     ax = fig.add_subplot(111, projection = '3d')
     ax.set_xlabel('x'); ax.set_ylabel('y'); ax.set_zlabel('z')
     locals = np.array([p.local() for p in particles])
-    ax.scatter(locals[:,0],locals[:,1],locals[:,2], c = weights)
+    sct = ax.scatter(locals[:,0],locals[:,1],locals[:,2], s = 10 ,c = weights)
+    fig.colorbar(sct)
 
     if x_gt is not None:
-        ax.scatter(x_gt.x,x_gt.y,x_gt.theta)
+        ax.scatter(x_gt.x,x_gt.y,x_gt.theta, s = 50, c = 'k')
 

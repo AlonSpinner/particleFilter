@@ -1,5 +1,5 @@
 import numpy as np
-from particleFilter.maps import beacons2D_range
+from particleFilter.maps import beacons2D_bearing
 from particleFilter.geometry import pose2
 from particleFilter.filters import pf_vanila_SE2
 import particleFilter.plotting as plotting
@@ -7,14 +7,13 @@ import matplotlib.pyplot as plt
 
 #--------build map
 beacons = np.array([[-2,-2],
-                    [-1,1],
                     [2,1]]).reshape(-1,2,1)
-modelMap = beacons2D_range(beacons)
+modelMap = beacons2D_bearing(beacons)
 modelMap.beaconsRange = 100 #basicaly inf
 
 #-------- initalize robot
-gt_x0 = pose2(1,0,0)
-Z_STD = np.deg2rad(1)
+gt_x = pose2(1,0,0)
+Z_STD = 0.1 #np.deg2rad(1)
 U_COV = np.zeros((3,3))
 U_COV[0,0] = 0.01; U_COV[1,1] = 0.01; U_COV[2,2] = 0.01
 
@@ -32,34 +31,34 @@ for i in range(n_particles):
     theta = np.random.uniform(-np.pi,np.pi)
     initialParticles.append(pose2(x,y,theta))
 pf = pf_vanila_SE2(modelMap,initialParticles)
-pf.ETA_THRESHOLD = 50.0/n_particles
+pf.ETA_THRESHOLD = 2.0/n_particles
 
 #----- prep visuals
 _, ax = plotting.spawnWorld(xrange = (-3,3), yrange = (-3,3))
 modelMap.show(ax)
 graphics_particles = plotting.plot_pose2(ax,pf.particles)
-graphics_gt = plotting.plot_pose2(ax,[gt_x0],color = 'r')
+graphics_gt = plotting.plot_pose2(ax,[gt_x],color = 'r')
 mu, cov = pf.estimateGaussian()
 graphics_cov = plotting.plot_cov_ellipse(ax,mu[:2],cov[:2,:2], nstd = 1)
 
-plt.draw(); plt.pause(0.1)
+plt.draw(); plt.pause(0.5)
 
 #------ run simulation
 with plt.ion():
     for u in gt_odom:
-        gt_x0 += u
+        gt_x += u
 
         #compute noisey odometry
         w = np.random.multivariate_normal(np.zeros(u.size), U_COV)
         u_noise = u + pose2(w[0],w[1],w[2])
         
         #compute noisey map measurement
-        z = modelMap.forward_measurement_model(gt_x0)
+        z = modelMap.forward_measurement_model(gt_x)
         z_cov = np.kron(np.eye(z.size),Z_STD**2) # amount of measurements might differ depending on gt_x0
         z_noise = np.random.multivariate_normal(z.squeeze(), z_cov).reshape(-1,1)
         
         pf.step(z_noise,z_cov,u,U_COV)
-        #pf.low_variance_sampler()
+        pf.low_variance_sampler()
         
         mu, cov = pf.estimateGaussian()
 
@@ -68,10 +67,10 @@ with plt.ion():
         graphics_gt.remove()
         graphics_cov.remove()
         graphics_particles = plotting.plot_pose2(ax,pf.particles)
-        graphics_gt = plotting.plot_pose2(ax,[gt_x0],color = 'r')
+        graphics_gt = plotting.plot_pose2(ax,[gt_x],color = 'r')
         graphics_cov = plotting.plot_cov_ellipse(ax, mu[:2],cov[:2,:2], nstd = 1)
 
-        plotting.plot_pose2_weight_distribution(pf.particles, pf.weights)
+        #plotting.plot_pose2_weight_distribution(pf.particles, pf.weights, gt_x)
         plt.pause(0.1)
 
 

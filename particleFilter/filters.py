@@ -29,11 +29,10 @@ class pf_vanila_SE2:
             #create target distribution
             zhat = self.m.forward_measurement_model(self.particles[i])
             self.weights[i] *= gauss_likelihood(z,zhat,z_cov, pseudo = True)
-            #self.weights[i] *= np.exp(-0.5*np.sum(z-zhat)**2)
 
         #normalize
         sm = self.weights.sum()
-        if sm == 0.0: #numerical errors can cause this
+        if sm == 0.0: #numerical errors can cause this if particles have diverged from solution
             print('numerically caused weight reset')
             self.weights = np.ones(self.N_PARTICLES) * 1/self.N_PARTICLES
         else:
