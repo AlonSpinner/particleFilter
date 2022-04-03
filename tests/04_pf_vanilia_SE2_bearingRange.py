@@ -15,14 +15,14 @@ modelMap.beaconsRange = 100 #basicaly inf
 #-------- initalize robot
 gt_x = pose2(1,0,0)
 Z_COV = np.zeros((2,2))
-Z_COV[0,0] = np.deg2rad(1); Z_COV[1,1] = 0.01
+Z_COV[0,0] = np.deg2rad(5); Z_COV[1,1] = 0.1
 U_COV = np.zeros((3,3))
 U_COV[0,0] = 0.01; U_COV[1,1] = 0.01; U_COV[2,2] = 0.01
 
 #----------build odometry (circle around)
 straight = [pose2(0.1,0,0)]
 turn = [pose2(0,0,np.pi/2/4)]
-gt_odom = straight*10 + turn*4 + straight*20 + turn*4 + straight*40
+gt_odom = straight*10 + turn*4 + straight*20 + turn*4 + straight*40 + turn*4*5 + straight*40
 
 #-------- initalize particle filter
 n_particles = 100
@@ -34,12 +34,12 @@ for i in range(n_particles):
     initialParticles.append(pose2(x,y,theta))
 pf = pf_vanila_SE2(modelMap,initialParticles)
 pf.ETA_THRESHOLD = 10.0/n_particles # bigger - lower threshold
-pf.SPREAD_THRESHOLD = 5.0 #bigger - higher threshold
+pf.SPREAD_THRESHOLD = 1.0 #bigger - higher threshold
 
 #----- prep visuals
 _, ax = plotting.spawnWorld(xrange = (-3,3), yrange = (-3,3))
 modelMap.show(ax)
-graphics_particles = plotting.plot_pose2(ax,pf.particles)
+graphics_particles = plotting.plot_pose2(ax,pf.particles, scale = pf.weights)
 graphics_gt = plotting.plot_pose2(ax,[gt_x],color = 'r')
 mu, cov = pf.estimateGaussian()
 graphics_cov = plotting.plot_cov_ellipse(ax,mu[:2],cov[:2,:2], nstd = 1)
@@ -64,12 +64,12 @@ with plt.ion():
         #pf.low_variance_sampler()
         
         mu, cov = pf.estimateGaussian()
-
+ 
         #add visuals
         graphics_particles.remove()
         graphics_gt.remove()
         graphics_cov.remove()
-        graphics_particles = plotting.plot_pose2(ax,pf.particles)
+        graphics_particles = plotting.plot_pose2(ax,pf.particles, scale = pf.weights)
         graphics_gt = plotting.plot_pose2(ax,[gt_x],color = 'r')
         graphics_cov = plotting.plot_cov_ellipse(ax, mu[:2],cov[:2,:2], nstd = 1)
 

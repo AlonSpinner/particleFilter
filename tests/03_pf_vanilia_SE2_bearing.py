@@ -38,7 +38,7 @@ pf.SPREAD_THRESHOLD = 5.0 #bigger - higher threshold
 #----- prep visuals
 _, ax = plotting.spawnWorld(xrange = (-3,3), yrange = (-3,3))
 modelMap.show(ax)
-graphics_particles = plotting.plot_pose2(ax,pf.particles)
+graphics_particles = plotting.plot_pose2(ax,pf.particles, scale = pf.weights)
 graphics_gt = plotting.plot_pose2(ax,[gt_x],color = 'r')
 mu, cov = pf.estimateGaussian()
 graphics_cov = plotting.plot_cov_ellipse(ax,mu[:2],cov[:2,:2], nstd = 1)
@@ -68,7 +68,7 @@ with plt.ion():
         graphics_particles.remove()
         graphics_gt.remove()
         graphics_cov.remove()
-        graphics_particles = plotting.plot_pose2(ax,pf.particles)
+        graphics_particles = plotting.plot_pose2(ax,pf.particles, scale = pf.weights)
         graphics_gt = plotting.plot_pose2(ax,[gt_x],color = 'r')
         graphics_cov = plotting.plot_cov_ellipse(ax, mu[:2],cov[:2,:2], nstd = 1)
 

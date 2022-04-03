@@ -50,10 +50,10 @@ def spawnWorld(xrange = None, yrange = None):
 
     return fig, ax
 
-def plot_pose2(ax, x : list[pose2],  color = 'k'):
+def plot_pose2(ax, x : list[pose2],  color = 'k', scale = 1):
     locals = np.array([xi.local() for xi in x])
-    u = np.cos(locals[:,2])
-    v = np.sin(locals[:,2])
+    u = scale * np.cos(locals[:,2])
+    v = scale * np.sin(locals[:,2])
     return ax.quiver(locals[:,0],locals[:,1],u,v, color = color)
 
 def plot_pose2_weight_distribution(particles, weights, x_gt = None):
