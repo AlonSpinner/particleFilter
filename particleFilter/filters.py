@@ -2,6 +2,9 @@ import numpy as np
 from particleFilter.geometry import pose2
 from particleFilter.maps import Map
 from particleFilter.gaussians import gauss_likelihood, gauss_fit
+import time
+
+START_TIME = time.time()
 
 class pf_vanila_SE2:
     def __init__(self,m : Map ,initial_states : list[pose2]):
@@ -12,7 +15,10 @@ class pf_vanila_SE2:
         self.m = m # map must have method forward_measurement_model(x)
         
         self.weights : np.ndarray = np.ones(self.N_PARTICLES) * 1/self.N_PARTICLES
-        self.ETA_THRESHOLD : float = 4.0/self.N_PARTICLES #threshold for performing resampling
+        self.ETA_THRESHOLD : float = 4.0/self.N_PARTICLES # bigger - lower threshold
+        self.SPREAD_THRESHOLD = 1.0 #bigger - higher threshold
+
+        self.verbose = True
         return
 
     def step(self,z,z_cov,
@@ -33,14 +39,16 @@ class pf_vanila_SE2:
         #normalize
         sm = self.weights.sum()
         if sm == 0.0: #numerical errors can cause this if particles have diverged from solution
-            print('numerically caused weight reset')
+            if self.verbose: print(f'{time.time() - START_TIME}[s]: numerically caused weight reset')
             self.weights = np.ones(self.N_PARTICLES) * 1/self.N_PARTICLES
         else:
             self.weights = self.weights/sm
             
         #resample
+        spread = np.linalg.norm(np.cov(self.particleLocals().T))
         n_eff = self.weights.dot(self.weights)
-        if n_eff < self.ETA_THRESHOLD:
+        if n_eff < self.ETA_THRESHOLD or spread > self.SPREAD_THRESHOLD:
+            if self.verbose: print(f'{time.time() - START_TIME}[s]: resampling')
             self.low_variance_sampler()
 
     def low_variance_sampler(self):
@@ -59,6 +67,9 @@ class pf_vanila_SE2:
         self.weights = np.ones(self.N_PARTICLES) * 1/self.N_PARTICLES
 
     def estimateGaussian(self):
-        locals = np.array([p.local() for p in self.particles]).T # -> 3xN_PARTICLES
+        locals = self.particleLocals().T # -> 3xN_PARTICLES
         mu, cov = gauss_fit(locals, self.weights)       
         return mu,cov
+
+    def particleLocals(self):
+        return np.array([p.local() for p in self.particles])
