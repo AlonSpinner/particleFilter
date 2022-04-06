@@ -75,7 +75,7 @@ class beacons2D_bearingRange(Map):
         z = []
         for b in self.beacons:
             if x.range(b) < self.beaconsRange:
-                z.append(x.transformTo(b))
+                z.append((x.bearing(b),x.range(b)))
         return np.array(z).reshape(-1,1)
 
     def show(self,ax : plt.Axes = None, xrange = None, yrange = None, size = 50, color = 'b'):
