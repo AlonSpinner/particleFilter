@@ -1,0 +1,6 @@
+$ conda create --name=particleFilter python=3.9
+$ conda activate particleFilter
+
+$ conda install matplotlib
+$ pip install open3d
+$ pip install gtsam (only for testing)

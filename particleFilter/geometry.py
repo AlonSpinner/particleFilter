@@ -23,6 +23,14 @@ class pose2:
         M1x3 = np.array([[0, 0, 1]])
         return np.vstack([M2x3,M1x3])
 
+    def T3d(self):
+        T = np.zeros((4,4))
+        T[3,3] = 1
+        T[0:2,3] = self.t()
+        T[0:2,0:2] = self.R()
+        T[2,2] = 1.0
+        return T
+
     def retract(self): #LieAlgebra ExpMap
         return self.T()
 
@@ -85,4 +93,6 @@ class pose2:
 
     def __str__(self):
         return f" x = {self.x}, y = {self.y}, theta = {self.theta}"
+
+
 

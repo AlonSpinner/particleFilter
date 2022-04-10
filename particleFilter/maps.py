@@ -1,6 +1,7 @@
 import numpy as np
 from particleFilter.geometry import pose2
 import matplotlib.pyplot as plt
+import open3d as o3d
 
 class Map:
     def __init__(self):
@@ -93,6 +94,17 @@ class beacons2D_bearingRange(Map):
 
         return ax
 
+class meshes(Map):
+        #http://www.open3d.org/docs/release/tutorial/geometry/ray_casting.html
+        def __init__(self,scene : o3d.cuda.pybind.t.geometry.RaycastingScene):
+            self.scene =  scene
+
+        def forward_measurement_model(self, x : pose2, angles):
+            rays = o3d.core.Tensor([[x.x,x.y,0,0,0,x.theta+a] for a in angles],
+                       dtype=o3d.core.Dtype.Float32)
+            ans = self.scene.cast_rays(rays)
+            z = ans['t_hit'].numpy()
+            return z
 
 
 
