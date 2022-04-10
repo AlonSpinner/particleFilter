@@ -25,8 +25,8 @@ class pose2:
 
     def T3d(self):
         T = np.zeros((4,4))
-        T[3,3] = 1
-        T[0:2,3] = self.t()
+        T[3,3] = 1.0
+        T[0:2,3] = self.t().squeeze()
         T[0:2,0:2] = self.R()
         T[2,2] = 1.0
         return T

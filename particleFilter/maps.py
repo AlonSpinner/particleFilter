@@ -2,6 +2,7 @@ import numpy as np
 from particleFilter.geometry import pose2
 import matplotlib.pyplot as plt
 import open3d as o3d
+from matplotlib.patches import Polygon
 
 class Map:
     def __init__(self):
@@ -94,10 +95,11 @@ class beacons2D_bearingRange(Map):
 
         return ax
 
-class meshes(Map):
+class o3d_meshes(Map):
         #http://www.open3d.org/docs/release/tutorial/geometry/ray_casting.html
-        def __init__(self,scene : o3d.cuda.pybind.t.geometry.RaycastingScene):
-            self.scene =  scene
+        def __init__(self,meshes,rayCastingScene):
+            self.scene =  rayCastingScene #o3d.cuda.pybind.t.geometry.RaycastingScene
+            self.meshes = meshes #{vertices,faces,color}
 
         def forward_measurement_model(self, x : pose2, angles):
             rays = o3d.core.Tensor([[x.x,x.y,0,0,0,x.theta+a] for a in angles],
@@ -105,6 +107,25 @@ class meshes(Map):
             ans = self.scene.cast_rays(rays)
             z = ans['t_hit'].numpy()
             return z
+
+        def show(self,ax : plt.Axes = None, xrange = None, yrange = None):
+            if ax == None:
+                fig = plt.figure()
+                ax = fig.add_subplot(111)
+                ax.set_xlabel('x'); ax.set_ylabel('y'); 
+                ax.set_aspect('equal'); ax.grid()
+
+            for mesh in self.meshes:
+                triangles = mesh["triangles"]
+                for tri in triangles:
+                    polygon = Polygon(tri, True)
+                    ax.add_patch(polygon)
+
+            if xrange is not None: ax.set_xlim(xrange)
+            if yrange is not None: ax.set_ylim(yrange)
+
+            return ax
+
 
 
 
