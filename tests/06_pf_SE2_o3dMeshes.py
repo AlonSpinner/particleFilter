@@ -118,16 +118,15 @@ for p in products:
 modelMap = o3d_meshes(meshes,rayCastingScene)
 
 #-------- initalize robot
-gt_x = pose2(-0.4,0.6,0)
-Z_COV = np.zeros((2,2))
-Z_COV[0,0] = np.deg2rad(5); Z_COV[1,1] = 0.1
+gt_x = pose2(-0.4,0.6,np.pi/2)
+Z_COV = np.array([0.1])
 U_COV = np.zeros((3,3))
 U_COV[0,0] = 0.01; U_COV[1,1] = 0.01; U_COV[2,2] = 0.01
 
 #----------build odometry (circle around)
 straight = [pose2(0.1,0,0)]
 turnLeft = [pose2(0,0,np.pi/2/4)]
-turnRight = [pose2(0,0,np.pi/2/4)]
+turnRight = [pose2(0,0,-np.pi/2/4)]
 gt_odom = straight*15 + turnLeft*4 + straight*10*5 + turnRight*4 + straight*10*5 + turnRight*4 + straight*10
 
 #-------- initalize particle filter
@@ -143,7 +142,7 @@ pf.ETA_THRESHOLD = 10.0/n_particles # bigger - lower threshold
 pf.SPREAD_THRESHOLD = 1.0 #bigger - higher threshold
 
 #----- prep visuals
-_, ax = plotting.spawnWorld(xrange = (-9,0), yrange = (-1,9))
+_, ax = plotting.spawnWorld(xrange = (-12,1), yrange = (-1,9))
 modelMap.show(ax)
 graphics_particles = plotting.plot_pose2(ax,pf.particles, scale = pf.weights)
 graphics_gt = plotting.plot_pose2(ax,[gt_x],color = 'r')
@@ -161,8 +160,8 @@ with plt.ion():
         u_noise = u + pose2(w[0],w[1],w[2])
         
         #compute noisey map measurement
-        z = modelMap.forward_measurement_model(gt_x,np.radians([-5,0,5]))
-        z_cov = np.kron(np.eye(int(z.size/2)),Z_COV) # amount of measurements might differ depending on gt_x0
+        z = modelMap.forward_measurement_model(gt_x)
+        z_cov = np.kron(np.eye(int(z.size)),Z_COV) # amount of measurements might differ depending on gt_x0
         z_noise = np.random.multivariate_normal(z.squeeze(), z_cov).reshape(-1,1)
         
         pf.step(z_noise,z_cov,u,U_COV)
