@@ -97,15 +97,15 @@ class beacons2D_bearingRange(Map):
 
 class o3d_meshes(Map):
         #http://www.open3d.org/docs/release/tutorial/geometry/ray_casting.html
-        def __init__(self,meshes,rayCastingScene):
-            self.scene =  rayCastingScene #o3d.cuda.pybind.t.geometry.RaycastingScene
-            self.meshes = meshes #{vertices,faces,color}
+        def __init__(self,patches2d,rayCastingScene):
+            self.scene =  rayCastingScene #o3d.cuda.pybind.t.geometry.RaycastingScene, for actual measurement model
+            self.patches2d = patches2d #{vertices,faces,color}, for drawing only
 
-        def forward_measurement_model(self, x : pose2):
-            angles = np.radians(np.linspace(-10,10,20))
-            zmax = 100.0
+        def forward_measurement_model(self, x):
+            zmax = 10.0
 
-            rays = o3d.core.Tensor([[x.x,x.y,2,0,0,x.theta+a] for a in angles],
+            # http://www.open3d.org/docs/release/python_api/open3d.t.geometry.RaycastingScene.html
+            rays = o3d.core.Tensor([[x.x,x.y,0,np.cos(x.theta+a),np.sin(x.theta+a),0] for a in x.angles],
                        dtype=o3d.core.Dtype.Float32)
             ans = self.scene.cast_rays(rays)
             z = ans['t_hit'].numpy()
@@ -119,8 +119,8 @@ class o3d_meshes(Map):
                 ax.set_xlabel('x'); ax.set_ylabel('y'); 
                 ax.set_aspect('equal'); ax.grid()
 
-            for mesh in self.meshes:
-                triangles = mesh["triangles"]
+            for patch in self.patches2d:
+                triangles = patch["triangles"]
                 for tri in triangles:
                     polygon = Polygon(tri, True)
                     ax.add_patch(polygon)

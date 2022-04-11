@@ -1,3 +1,4 @@
+from logging import FileHandler
 import open3d as o3d
 import numpy as np
 from particleFilter.geometry import pose2
@@ -8,6 +9,7 @@ def createStructure():
 
     wallWidth = 0.2
     wallHeight = 2.0
+    drop = -1.0
     wallColor = [0.5, 0.5, 0.3]
     firstwallColor = [0.2, 0.2, 0.3]
 
@@ -21,72 +23,96 @@ def createStructure():
     ###---- Room 1
     wall = o3d.geometry.TriangleMesh.create_box(width=wallWidth,height=3.0, depth=wallHeight)
     wall.paint_uniform_color(firstwallColor)
-    wall.transform(pose2(0,0,0).T3d())
+    T = pose2(0,0,0).T3d()
+    T[2,3] = drop
+    wall.transform(T)
     products.append(wall)
 
     wall = o3d.geometry.TriangleMesh.create_box(width=wallWidth,height=3.0, depth=wallHeight)
     wall.paint_uniform_color(wallColor)
-    wall.transform(pose2(0,0,np.pi/2).T3d())
+    T = pose2(0,0,np.pi/2).T3d()
+    T[2,3] = drop
+    wall.transform(T)
     products.append(wall)
 
     wall = o3d.geometry.TriangleMesh.create_box(width=wallWidth,height=3.0, depth=wallHeight)
     wall.paint_uniform_color(wallColor)
-    wall.transform(pose2(0,3-wallWidth,np.pi/2).T3d())
+    T = pose2(0,3-wallWidth,np.pi/2).T3d()
+    T[2,3] = drop
+    wall.transform(T)
     products.append(wall)
 
     wall = o3d.geometry.TriangleMesh.create_box(width=wallWidth,height=1.5, depth=wallHeight)
     wall.paint_uniform_color(wallColor)
-    wall.transform(pose2(-3,wallWidth,0).T3d())
+    T = pose2(-3,wallWidth,0).T3d()
+    T[2,3] = drop
+    wall.transform(T)
     products.append(wall)
 
     ###--- Room 2
     wall = o3d.geometry.TriangleMesh.create_box(width=wallWidth,height=3.0, depth=wallHeight)
     wall.paint_uniform_color(wallColor)
-    wall.transform(pose2(-3,3,0).T3d())
+    T = pose2(-3,3,0).T3d()
+    T[2,3] = drop
+    wall.transform(T)
     products.append(wall)
 
     wall = o3d.geometry.TriangleMesh.create_box(width=wallWidth,height=4.0, depth=wallHeight)
     wall.paint_uniform_color(wallColor)
-    wall.transform(pose2(-3,0,np.pi/2).T3d())
+    T = pose2(-3,0,np.pi/2).T3d()
+    T[2,3] = drop
+    wall.transform(T)
     products.append(wall)
 
     wall = o3d.geometry.TriangleMesh.create_box(width=wallWidth,height=4.0, depth=wallHeight)
     wall.paint_uniform_color(wallColor)
-    wall.transform(pose2(-7-wallWidth,0,0).T3d())
+    T = pose2(-7-wallWidth,0,0).T3d()
+    T[2,3] = drop
+    wall.transform(T)
     products.append(wall)
 
     wall = o3d.geometry.TriangleMesh.create_box(width=wallWidth,height=3.0, depth=wallHeight)
     wall.paint_uniform_color(wallColor)
-    wall.transform(pose2(-7,4,np.pi/2).T3d())
+    T = pose2(-7,4,np.pi/2).T3d()
+    T[2,3] = drop
+    wall.transform(T)
     products.append(wall)
 
     wall = o3d.geometry.TriangleMesh.create_box(width=wallWidth,height=4.0, depth=wallHeight)
     wall.paint_uniform_color(wallColor)
-    wall.transform(pose2(-10,4+wallWidth,0).T3d())
+    T = pose2(-10,4+wallWidth,0).T3d()
+    T[2,3] = drop
+    wall.transform(T)
     products.append(wall)
 
     wall = o3d.geometry.TriangleMesh.create_box(width=wallWidth,height=7.0, depth=wallHeight)
     wall.paint_uniform_color(wallColor)
-    wall.transform(pose2(-3,8+wallWidth,np.pi/2).T3d())
+    T = pose2(-3,8+wallWidth,np.pi/2).T3d()
+    T[2,3] = drop
+    wall.transform(T)
     products.append(wall)
 
     ###--- Room 3
 
     wall = o3d.geometry.TriangleMesh.create_box(width=wallWidth,height=3.0, depth=wallHeight)
     wall.paint_uniform_color(wallColor)
-    wall.transform(pose2(0,8+wallWidth,np.pi/2).T3d())
+    T = pose2(0,8+wallWidth,np.pi/2).T3d()
+    T[2,3] = drop
+    wall.transform(T)
     products.append(wall)
 
     wall = o3d.geometry.TriangleMesh.create_box(width=wallWidth,height=5.0+2*wallWidth, depth=wallHeight)
     wall.paint_uniform_color(wallColor)
-    wall.transform(pose2(0,3,0).T3d())
+    T = pose2(0,3,0).T3d()
+    T[2,3] = drop
+    wall.transform(T)
     products.append(wall)
 
     #### Floor
     floor = o3d.geometry.TriangleMesh.create_box(width=20.0,height=20.0, depth=0.1)
     floor.paint_uniform_color(FloorColor)
     T = pose2(-14,-5,0).T3d()
-    T[2,3] = -0.1
+    T[2,3] = -0.1 + drop
     floor.transform(T)
     products.append(floor)
 
@@ -121,21 +147,11 @@ def o3d_to_mymesh(o3d_mesh):
 
 products, worldFrame = createStructure()
 
-#another option:
-#o3d.visualization.draw_geometries(products+[worldFrame],mesh_show_wireframe=True)
+#open3d visualization
+o3d.visualization.draw_geometries(products+[worldFrame],mesh_show_wireframe=True)
 
+#matplotlib visualization
 mymeshes = [o3d_to_mymesh(p) for p in products]
 ax = showPyplot(mymeshes)
-# ax.set(xlim=(-9, 0), ylim=(-1,9), zlim=(-1, 4))
 plt.show()
 
-scene = o3d.t.geometry.RaycastingScene()
-for p in products:
-    p = o3d.t.geometry.TriangleMesh.from_legacy(p)
-    scene.add_triangles(p)
-
-# # vis = o3d.visualization.Visualizer()
-# # vis.create_window()
-# # vis.add_geometry(scene)
-# # plt.pause(0.5)
-# # vis.update_renderer()
