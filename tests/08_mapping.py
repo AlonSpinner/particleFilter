@@ -197,19 +197,22 @@ with plt.ion():
         
         #compute noisey map measurement
         z_perfect = worldMap.forward_measurement_model(gt_x)
-        # z_cov = np.kron(np.eye(int(z_perfect.size)),Z_COV) # amount of measurements might differ depending on gt_x0
-        # z_noise = np.random.multivariate_normal(z_perfect.squeeze(), z_cov).reshape(-1,1)
+        z_cov = np.kron(np.eye(int(z_perfect.size)),Z_COV) # amount of measurements might differ depending on gt_x0
+        z_noise = np.random.multivariate_normal(z_perfect.squeeze(), z_cov).reshape(-1,1)
 
-        for a,z in zip(laser.angles,z_perfect):
-            dp = (z*[np.cos(a),np.sin(a)]).reshape(-1,1)
-            lm = gt_x.pose().transformFrom(np.array(dp))
-            gmap.updateHit(gmap.c2d(lm))
+        [cells, update] = laser.inverse_measurement_model(gt_x.pose(), z_noise, gmap)
+        gmap.update(cells,update)
+
+        #for a,z in zip(laser.angles,z_noise):
+        #    dp = (z*[np.cos(a),np.sin(a)]).reshape(-1,1)
+         #   lm = gt_x.pose().transformFrom(np.array(dp))
+         #   gmap.updateHit(gmap.c2d(lm))
  
         #add visuals
         graphics_gt.remove()
         graphics_gt = plotting.plot_pose2(ax_world,[gt_x],color = 'r')
-        dx_meas = gt_x.x + z_perfect*np.cos(gt_x.theta+angles).reshape(-1,1)
-        dy_meas = gt_x.y + z_perfect*np.sin(gt_x.theta+angles).reshape(-1,1)
+        dx_meas = gt_x.x + z_noise*np.cos(gt_x.theta+angles).reshape(-1,1)
+        dy_meas = gt_x.y + z_noise*np.sin(gt_x.theta+angles).reshape(-1,1)
         
         graphics_meas.set_offsets(np.hstack((dx_meas,dy_meas)))
 

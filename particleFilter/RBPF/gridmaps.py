@@ -36,9 +36,14 @@ class gridmap2:
 
         return ax
 
-    # def update(self,cells,p):
-    #     for c in freeCells:
-    #         logOdds(c,xt,zt) - logOdds(c) + logOdds
+    def update(self,cells,update):
+        for c,u in zip(cells,update):
+            if u == 'free':
+               self.updateMiss(c)
+            elif u == 'occ':
+                self.updateHit(c)
+            
+            # logOdds(c,xt,zt) - logOdds(c) + logOdds
         
     def c2d(self,loc): #continous2discrete
         # We simplify the whole grid situations to this setting:
@@ -56,8 +61,8 @@ class gridmap2:
 
     def d2c(self,loc): #discrete2continous
         i, j = loc #unpack
-        x = (i + 0.5) * self.resX
-        y = (j + 0.5) * self.resY
+        x = (j + 0.5) * self.resX
+        y = (i + 0.5) * self.resY
         return (x,y)
 
     def updateHit(self,c):
