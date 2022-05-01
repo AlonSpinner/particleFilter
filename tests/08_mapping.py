@@ -17,7 +17,7 @@ def createStructure():
     drop = -1.0
     wallColor = [0.5, 0.5, 0.3]
     firstwallColor = [0.2, 0.2, 0.3]
-
+    xshift = 20
     products = []
 
     ###---- Room 1
@@ -25,6 +25,7 @@ def createStructure():
     wall.paint_uniform_color(firstwallColor)
     T = pose2(0,0,0).T3d()
     T[2,3] = drop
+    T[0,3] = T[0,3]+xshift
     wall.transform(T)
     products.append(wall)
 
@@ -32,6 +33,7 @@ def createStructure():
     wall.paint_uniform_color(wallColor)
     T = pose2(0,0,np.pi/2).T3d()
     T[2,3] = drop
+    T[0,3] = T[0,3]+xshift
     wall.transform(T)
     products.append(wall)
 
@@ -39,6 +41,7 @@ def createStructure():
     wall.paint_uniform_color(wallColor)
     T = pose2(0,3-wallWidth,np.pi/2).T3d()
     T[2,3] = drop
+    T[0,3] = T[0,3]+xshift
     wall.transform(T)
     products.append(wall)
 
@@ -46,6 +49,7 @@ def createStructure():
     wall.paint_uniform_color(wallColor)
     T = pose2(-3,wallWidth,0).T3d()
     T[2,3] = drop
+    T[0,3] = T[0,3]+xshift
     wall.transform(T)
     products.append(wall)
 
@@ -54,6 +58,7 @@ def createStructure():
     wall.paint_uniform_color(wallColor)
     T = pose2(-3,3,0).T3d()
     T[2,3] = drop
+    T[0,3] = T[0,3]+xshift
     wall.transform(T)
     products.append(wall)
 
@@ -61,6 +66,7 @@ def createStructure():
     wall.paint_uniform_color(wallColor)
     T = pose2(-3,0,np.pi/2).T3d()
     T[2,3] = drop
+    T[0,3] = T[0,3]+xshift
     wall.transform(T)
     products.append(wall)
 
@@ -68,6 +74,7 @@ def createStructure():
     wall.paint_uniform_color(wallColor)
     T = pose2(-7-wallWidth,0,0).T3d()
     T[2,3] = drop
+    T[0,3] = T[0,3]+xshift
     wall.transform(T)
     products.append(wall)
 
@@ -75,6 +82,7 @@ def createStructure():
     wall.paint_uniform_color(wallColor)
     T = pose2(-7,4,np.pi/2).T3d()
     T[2,3] = drop
+    T[0,3] = T[0,3]+xshift
     wall.transform(T)
     products.append(wall)
 
@@ -82,6 +90,7 @@ def createStructure():
     wall.paint_uniform_color(wallColor)
     T = pose2(-10,4+wallWidth,0).T3d()
     T[2,3] = drop
+    T[0,3] = T[0,3]+xshift
     wall.transform(T)
     products.append(wall)
 
@@ -89,6 +98,7 @@ def createStructure():
     wall.paint_uniform_color(wallColor)
     T = pose2(-3,8+wallWidth,np.pi/2).T3d()
     T[2,3] = drop
+    T[0,3] = T[0,3]+xshift
     wall.transform(T)
     products.append(wall)
 
@@ -98,6 +108,7 @@ def createStructure():
     wall.paint_uniform_color(wallColor)
     T = pose2(0,8+wallWidth,np.pi/2).T3d()
     T[2,3] = drop
+    T[0,3] = T[0,3]+xshift
     wall.transform(T)
     products.append(wall)
 
@@ -105,6 +116,7 @@ def createStructure():
     wall.paint_uniform_color(wallColor)
     T = pose2(0,3,0).T3d()
     T[2,3] = drop
+    T[0,3] = T[0,3]+xshift
     wall.transform(T)
     products.append(wall)
 
@@ -154,11 +166,11 @@ for p in products:
 worldMap = o3d_meshes(patches2d,rayCastingScene)
 
 #-------- create empty gridmap to be filled
-gmap = gridmap2(1,1,40,40)
+gmap = gridmap2(30,17,0.1,0.1)
 
 #-------- initalize robot
 angles = np.radians(np.linspace(-180,180,50))
-gt_x = robot(-0.4,0.6,np.pi/2,angles)
+gt_x = robot(19.4,0.6,np.pi/2,angles)
 x0 = gt_x.pose()
 Z_COV = np.array([0.01])
 
@@ -171,10 +183,11 @@ turnRight = [pose2(0,0,-np.pi/2/4)]
 gt_odom = straight*15 + turnLeft*4 + straight*10*5 + turnRight*4 + straight*10*5 + turnRight*4 + straight*40 + turnRight*4 + straight*20
 
 #----- prep visuals
-_, ax = plotting.spawnWorld(xrange = (-12,1), yrange = (-1,9))
-graphics_meas = ax.scatter([],[],s = 10, color = 'r')
-worldMap.show(ax)
-graphics_gt = plotting.plot_pose2(ax,[gt_x],color = 'r')
+_, ax_world = plotting.spawnWorld(xrange = (8,22), yrange = (0,10))
+graphics_meas = ax_world.scatter([],[],s = 10, color = 'r')
+worldMap.show(ax_world)
+graphics_gt = plotting.plot_pose2(ax_world,[gt_x],color = 'r')
+ax_grid = gmap.show()
 plt.draw(); plt.pause(0.5)
 
 #------ run simulation
@@ -183,26 +196,26 @@ with plt.ion():
         gt_x += u
         
         #compute noisey map measurement
-        z_real = worldMap.forward_measurement_model(gt_x)
-        z_cov = np.kron(np.eye(int(z_real.size)),Z_COV) # amount of measurements might differ depending on gt_x0
-        z_noise = np.random.multivariate_normal(z_real.squeeze(), z_cov).reshape(-1,1)
+        z_perfect = worldMap.forward_measurement_model(gt_x)
+        # z_cov = np.kron(np.eye(int(z_perfect.size)),Z_COV) # amount of measurements might differ depending on gt_x0
+        # z_noise = np.random.multivariate_normal(z_perfect.squeeze(), z_cov).reshape(-1,1)
 
-        for a,z in zip(laser.angles,z_real):
-            dx = z * np.cos(a); dy = z * np.sin(a)
-            lm = gt_x.pose().transformFrom(np.array([dx,dy]))
+        for a,z in zip(laser.angles,z_perfect):
+            dp = (z*[np.cos(a),np.sin(a)]).reshape(-1,1)
+            lm = gt_x.pose().transformFrom(np.array(dp))
             gmap.updateHit(gmap.c2d(lm))
  
         #add visuals
         graphics_gt.remove()
-        graphics_gt = plotting.plot_pose2(ax,[gt_x],color = 'r')
-        dx_meas = gt_x.x + z_real*np.cos(gt_x.theta+angles).reshape(-1,1)
-        dy_meas = gt_x.y + z_real*np.sin(gt_x.theta+angles).reshape(-1,1)
+        graphics_gt = plotting.plot_pose2(ax_world,[gt_x],color = 'r')
+        dx_meas = gt_x.x + z_perfect*np.cos(gt_x.theta+angles).reshape(-1,1)
+        dy_meas = gt_x.y + z_perfect*np.sin(gt_x.theta+angles).reshape(-1,1)
         
         graphics_meas.set_offsets(np.hstack((dx_meas,dy_meas)))
 
         plt.pause(0.01)
-
-gmap.show()
+        if i%5==0:
+            gmap.show(ax_grid)
 plt.show()
 
 

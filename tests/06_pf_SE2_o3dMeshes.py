@@ -153,7 +153,7 @@ modelMap = o3d_meshes(patches2d,rayCastingScene)
 #-------- initalize robot
 angles = np.radians(np.linspace(-180,180,50))
 gt_x = robot(-0.4,0.6,np.pi/2,angles)
-Z_COV = np.array([1])
+Z_COV = np.array([0.01])
 U_COV = np.zeros((3,3))
 U_COV[0,0] = 0.01; U_COV[1,1] = 0.01; U_COV[2,2] = 0.01
 
@@ -172,9 +172,9 @@ for i in range(n_particles):
     theta = np.random.uniform(-np.pi,np.pi)
     initialParticles.append(robot(x,y,theta,angles))
 pf = pf_vanila_SE2(modelMap,initialParticles)
-pf.ETA_THRESHOLD = 2/n_particles # bigger - lower threshold
-pf.SPREAD_THRESHOLD = 100.0 #bigger - higher threshold
-relaxer = 80.0
+pf.ETA_THRESHOLD = 10/n_particles # bigger - lower threshold
+pf.SPREAD_THRESHOLD = 5.0 #bigger - higher threshold
+relaxer = 300.0
 
 #----- prep visuals
 _, ax = plotting.spawnWorld(xrange = (-12,1), yrange = (-1,9))
@@ -214,8 +214,8 @@ with plt.ion():
         graphics_particles = plotting.plot_pose2(ax,pf.particles, scale = pf.weights)
         graphics_gt = plotting.plot_pose2(ax,[gt_x],color = 'r')
         graphics_cov = plotting.plot_cov_ellipse(ax, mu[:2],cov[:2,:2], nstd = 1)
-        dx_meas = gt_x.x + z*np.cos(gt_x.theta+angles).reshape(-1,1)
-        dy_meas = gt_x.y + z*np.sin(gt_x.theta+angles).reshape(-1,1)
+        dx_meas = gt_x.x + z_noise*np.cos(gt_x.theta+angles).reshape(-1,1)
+        dy_meas = gt_x.y + z_noise*np.sin(gt_x.theta+angles).reshape(-1,1)
         
         graphics_meas.set_offsets(np.hstack((dx_meas,dy_meas)))
 

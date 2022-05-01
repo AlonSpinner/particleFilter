@@ -5,7 +5,7 @@ from particleFilter.RBPF.gridmaps import gridmap2
 class laser2:
     
     def __init__(self, angles):
-        self.angles = np.radians(np.linspace(-45,45,10))
+        self.angles = angles
         self.alpha = 0.1 # object width in meters
         self.beta = np.radians(3) #beam anglar width in radians
         self.zmax = 10 #meters
