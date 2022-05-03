@@ -13,11 +13,12 @@ class gridmap2:
 
         #construct with uniform map
         self.gridOcc = np.zeros((self.height,self.width))
-        self.gridMiss = np.zeros((self.height,self.width))
-        self.gridLog = np.zeros((self.height,self.width))
+        self.gridFree = np.zeros((self.height,self.width))
+        self.gridLog = p2logodds(0.5*np.ones((self.height,self.width)))
 
         self.log_pm_zocc = p2logodds(0.8) #p(m=occupied|z=hit,x)
         self.log_p_zfree = p2logodds(0.6) #p(m=free|z=hit,x)
+        
     def show(self,ax : plt.Axes = None):
         if ax == None:
             fig = plt.figure()
@@ -28,7 +29,9 @@ class gridmap2:
         # cell holds probability of being occupied, which we want to paint black. hence data = 1-self.grid
         # unlike imshow, pcolor flips the data matrix on the vertical axis. Which is something we want built in.
         # also: pcolorfast is way faster than regular pcolor
-        grid = self.gridHits/(self.gridHits + self.gridMiss)
+        
+        # grid = self.gridOcc/(self.gridOcc + self.gridFree)
+        grid = logodds2p(self.gridLog)
         ax.pcolorfast(1-grid,  vmin=0.0, vmax=1.0, cmap=plt.cm.gray)
         
         fmt = tkr.FuncFormatter(partial(numfmt,self.res))
@@ -36,13 +39,6 @@ class gridmap2:
         ax.xaxis.set_major_formatter(fmt)
 
         return ax
-
-    def update(self,cells,update):
-        for c,u in zip(cells,update):
-            if u == 'free':
-               self.updateMiss(c)
-            elif u == 'occ':
-                self.updateHit(c)
         
     def c2d(self,loc): #continous2discrete
         # We simplify the whole grid situations to this setting:
@@ -64,17 +60,16 @@ class gridmap2:
         y = (i + 0.5) * self.res
         return (x,y)
 
-    def updateHit(self,c):
-        #product of c2d - (i,j)
-        if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
-            self.gridOcc[c[0],c[1]] += 1
-            self.gridLog[c[0],c[1]] += self.log_pm_zocc 
-
-    def updateMiss(self,c):
-        if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
-            #product of c2d - (i,j)
-            self.gridMiss[c[0],c[1]] += 1
-            self.gridLog[c[0],c[1]] -= self.log_p_zfree
+    def update(self,c_occ,c_free):
+        for c in c_occ:
+            if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
+                self.gridOcc[c[0],c[1]] += 1
+                self.gridLog[c[0],c[1]] += self.log_pm_zocc 
+        for c in c_free:
+            if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
+                #product of c2d - (i,j)
+                self.gridFree[c[0],c[1]] += 1
+                self.gridLog[c[0],c[1]] -= self.log_p_zfree
 
     def inverse_measurement_model(self, x : pose2, a : np.ndarray, z : np.ndarray): #returns p(m|xt,zt)
     #inspired from:
@@ -83,15 +78,15 @@ class gridmap2:
     
     #zt - array of range measurements correlating to laser's angles
         disc_x = self.c2d(x.t())
-        chit = []
-        cfree = []
+        c_occ = []
+        c_free = []
         for ai,zi in zip(a,z):
             dp = (zi*[np.cos(ai),np.sin(ai)]).reshape(-1,1)
-            lm = x.pose().transformFrom(np.array(dp))
+            lm = x.transformFrom(np.array(dp))
             disc_lm = self.c2d(lm)
-            chit.append(disc_lm)
-            cfree.append(self.bresenham2(disc_x[0],disc_x[1],disc_lm[0],disc_lm[1]))
-        return chit, cfree
+            c_occ.append(disc_lm)
+            c_free.extend(bresenham2(disc_x[0],disc_x[1],disc_lm[0],disc_lm[1]))
+        return c_occ, c_free
 
         
 def p2logodds(p):
@@ -105,53 +100,38 @@ def numfmt(v, x, pos): # your custom formatter function: divide by 100.0
     return s
 
 def bresenham2(x1, y1, x2, y2):
-	"""
-	Bresenham's line drawing algorithm - working for all 4 quadrants!
-    https://github.com/lukovicaleksa/grid-mapping-in-ROS/blob/main/scripts/bresenham.py
-	"""
-	# Output pixels
-	X_bres = []
-	Y_bres = []
+    bres = []
+    x = x1
+    y = y1
+    
+    delta_x = np.abs(x2-x1)
+    delta_y = np.abs(y2-y1)
 
-	x = x1
-	y = y1
-	
-	delta_x = np.abs(x2 - x1)
-	delta_y = np.abs(y2 - y1)
-	
-	s_x = np.sign(x2 - x1)
-	s_y = np.sign(y2 - y1)
+    s_x = np.sign(x2 - x1)
+    s_y = np.sign(y2 - y1)
 
-	if delta_y > delta_x:
-		delta_x, delta_y = delta_y, delta_x
-		interchange = True
+    if delta_y > delta_x:
+        delta_x, delta_y = delta_y, delta_x
+        interchange = True
+    else:
+        interchange = False
 
-	else:
-		interchange = False
+    A = 2*delta_y
+    B = 2*(delta_y-delta_x)
+    E = 2* delta_y - delta_x
 
-	A = 2 * delta_y
-	B = 2 * (delta_y - delta_x)
-	E = 2 * delta_y - delta_x
+    bres.append((x,y))
+    for i in range(1,delta_x):
+        if E < 0:
+            if interchange:
+                y += s_y
+            else:
+                x += s_x
+            E = E + A
+        else:
+            y += s_y
+            x += s_x
 
-	# mark output pixels
-	X_bres.append(x)
-	Y_bres.append(y)
+        bres.append((x,y))
 
-	# point (x2,y2) must not be included
-	for _ in range(1, delta_x):
-		if E < 0:
-			if interchange:
-				y += s_y
-			else:
-				x += s_x
-			E = E + A
-		else:
-			y += s_y
-			x += s_x
-			E = E + B
-
-		# mark output pixels
-		X_bres.append(x)
-		Y_bres.append(y)
-
-	return zip(X_bres, Y_bres)
+    return bres
