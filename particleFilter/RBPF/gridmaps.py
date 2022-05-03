@@ -5,17 +5,19 @@ import matplotlib.ticker as tkr     # has classes for tick-locating and -formatt
 from functools import partial
 
 class gridmap2:
-    def __init__(self,  maxX, maxY, resX, resY):
-        self.width = int(np.ceil(maxX / resX))
-        self.height = int(np.ceil(maxY / resY))
+    def __init__(self,  maxX, maxY, res):
+        self.width = int(np.ceil(maxX / res))
+        self.height = int(np.ceil(maxY / res))
 
-        self.resX = resX #higher scale <-> lower resolution
-        self.resY = resY
+        self.res = res #higher scale <-> lower resolution
 
         #construct with uniform map
-        self.gridHits = np.zeros((self.height,self.width))
+        self.gridOcc = np.zeros((self.height,self.width))
         self.gridMiss = np.zeros((self.height,self.width))
+        self.gridLog = np.zeros((self.height,self.width))
 
+        self.log_pm_zocc = p2logodds(0.8) #p(m=occupied|z=hit,x)
+        self.log_p_zfree = p2logodds(0.6) #p(m=free|z=hit,x)
     def show(self,ax : plt.Axes = None):
         if ax == None:
             fig = plt.figure()
@@ -29,10 +31,9 @@ class gridmap2:
         grid = self.gridHits/(self.gridHits + self.gridMiss)
         ax.pcolorfast(1-grid,  vmin=0.0, vmax=1.0, cmap=plt.cm.gray)
         
-        yfmt = tkr.FuncFormatter(partial(numfmt,self.resY))
-        ax.yaxis.set_major_formatter(yfmt)
-        xfmt = tkr.FuncFormatter(partial(numfmt,self.resX))
-        ax.xaxis.set_major_formatter(xfmt)
+        fmt = tkr.FuncFormatter(partial(numfmt,self.res))
+        ax.yaxis.set_major_formatter(fmt)
+        ax.xaxis.set_major_formatter(fmt)
 
         return ax
 
@@ -42,8 +43,6 @@ class gridmap2:
                self.updateMiss(c)
             elif u == 'occ':
                 self.updateHit(c)
-            
-            # logOdds(c,xt,zt) - logOdds(c) + logOdds
         
     def c2d(self,loc): #continous2discrete
         # We simplify the whole grid situations to this setting:
@@ -55,38 +54,104 @@ class gridmap2:
         #* this is only a storage world. when we want to present, we flip the y axis 
 
         x,y = loc #unpack
-        i = np.int(y / self.resY)
-        j = np.int(x / self.resX)
+        i = np.int(y / self.res)
+        j = np.int(x / self.res)
         return (i,j)
 
     def d2c(self,loc): #discrete2continous
         i, j = loc #unpack
-        x = (j + 0.5) * self.resX
-        y = (i + 0.5) * self.resY
+        x = (j + 0.5) * self.res
+        y = (i + 0.5) * self.res
         return (x,y)
 
     def updateHit(self,c):
         #product of c2d - (i,j)
         if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
-            self.gridHits[c[0],c[1]] += 1
+            self.gridOcc[c[0],c[1]] += 1
+            self.gridLog[c[0],c[1]] += self.log_pm_zocc 
 
     def updateMiss(self,c):
         if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
             #product of c2d - (i,j)
             self.gridMiss[c[0],c[1]] += 1
+            self.gridLog[c[0],c[1]] -= self.log_p_zfree
 
-    #constructor from image
-    def readFromImage(filename, scaleX = 1, scaleY = 1):
-        # in grid, 1 ~ 100% occupied, as such, we need to change image values
-        # we flip the image as the grid storage and world axes are with negative y axes
-        im = rgb2gray(plt.imread(filename))
-        processed = 1-np.flipud(im)
-        return  gridmap2(processed, scaleX, scaleY)
+    def inverse_measurement_model(self, x : pose2, a : np.ndarray, z : np.ndarray): #returns p(m|xt,zt)
+    #inspired from:
+    #from probablistic robotics chapter 9, table 9.2
+    #Algorithm inverse_range_sensor_model
+    
+    #zt - array of range measurements correlating to laser's angles
+        disc_x = self.c2d(x.t())
+        chit = []
+        cfree = []
+        for ai,zi in zip(a,z):
+            dp = (zi*[np.cos(ai),np.sin(ai)]).reshape(-1,1)
+            lm = x.pose().transformFrom(np.array(dp))
+            disc_lm = self.c2d(lm)
+            chit.append(disc_lm)
+            cfree.append(self.bresenham2(disc_x[0],disc_x[1],disc_lm[0],disc_lm[1]))
+        return chit, cfree
 
-def rgb2gray(rgb):
-    #https://stackoverflow.com/questions/12201577/how-can-i-convert-an-rgb-image-into-grayscale-in-python
-    return np.dot(rgb[...,:3], [0.2989, 0.5870, 0.1140])
+        
+def p2logodds(p):
+    return np.log(p / (1 - p))
+
+def logodds2p(l):
+    return 1 - 1 / (1 + np.exp(l))
         
 def numfmt(v, x, pos): # your custom formatter function: divide by 100.0
     s = '{}'.format(x * v)
     return s
+
+def bresenham2(x1, y1, x2, y2):
+	"""
+	Bresenham's line drawing algorithm - working for all 4 quadrants!
+    https://github.com/lukovicaleksa/grid-mapping-in-ROS/blob/main/scripts/bresenham.py
+	"""
+	# Output pixels
+	X_bres = []
+	Y_bres = []
+
+	x = x1
+	y = y1
+	
+	delta_x = np.abs(x2 - x1)
+	delta_y = np.abs(y2 - y1)
+	
+	s_x = np.sign(x2 - x1)
+	s_y = np.sign(y2 - y1)
+
+	if delta_y > delta_x:
+		delta_x, delta_y = delta_y, delta_x
+		interchange = True
+
+	else:
+		interchange = False
+
+	A = 2 * delta_y
+	B = 2 * (delta_y - delta_x)
+	E = 2 * delta_y - delta_x
+
+	# mark output pixels
+	X_bres.append(x)
+	Y_bres.append(y)
+
+	# point (x2,y2) must not be included
+	for _ in range(1, delta_x):
+		if E < 0:
+			if interchange:
+				y += s_y
+			else:
+				x += s_x
+			E = E + A
+		else:
+			y += s_y
+			x += s_x
+			E = E + B
+
+		# mark output pixels
+		X_bres.append(x)
+		Y_bres.append(y)
+
+	return zip(X_bres, Y_bres)

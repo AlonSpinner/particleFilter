@@ -166,7 +166,7 @@ for p in products:
 worldMap = o3d_meshes(patches2d,rayCastingScene)
 
 #-------- create empty gridmap to be filled
-gmap = gridmap2(30,17,0.1,0.1)
+gmap = gridmap2(30,17,0.1)
 
 #-------- initalize robot
 angles = np.radians(np.linspace(-180,180,50))
@@ -200,13 +200,13 @@ with plt.ion():
         z_cov = np.kron(np.eye(int(z_perfect.size)),Z_COV) # amount of measurements might differ depending on gt_x0
         z_noise = np.random.multivariate_normal(z_perfect.squeeze(), z_cov).reshape(-1,1)
 
-        [cells, update] = laser.inverse_measurement_model(gt_x.pose(), z_noise, gmap)
-        gmap.update(cells,update)
+        # [cells, update] = laser.inverse_measurement_model(gt_x.pose(), z_noise, gmap)
+        # gmap.update(cells,update)
 
-        #for a,z in zip(laser.angles,z_noise):
-        #    dp = (z*[np.cos(a),np.sin(a)]).reshape(-1,1)
-         #   lm = gt_x.pose().transformFrom(np.array(dp))
-         #   gmap.updateHit(gmap.c2d(lm))
+        for a,z in zip(laser.angles,z_noise):
+           dp = (z*[np.cos(a),np.sin(a)]).reshape(-1,1)
+           lm = gt_x.pose().transformFrom(np.array(dp))
+           gmap.updateHit(gmap.c2d(lm))
  
         #add visuals
         graphics_gt.remove()
