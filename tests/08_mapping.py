@@ -168,7 +168,7 @@ for p in products:
 worldMap = o3d_meshes(patches2d,rayCastingScene)
 
 #-------- create empty gridmap to be filled
-gmap = gridmap2(30,17,0.1)
+gmap = gridmap2(25,10,0.1)
 
 #-------- initalize robot
 angles = np.radians(np.linspace(-180,180,50))
