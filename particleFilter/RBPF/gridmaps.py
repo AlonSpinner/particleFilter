@@ -17,7 +17,10 @@ class gridmap2:
         self.gridLog = p2logodds(0.5*np.ones((self.height,self.width)))
 
         self.log_pm_zocc = p2logodds(0.8) #p(m=occupied|z=hit,x)
-        self.log_p_zfree = p2logodds(0.6) #p(m=free|z=hit,x)
+        self.log_pm_zfree = p2logodds(0.6) #p(m=free|z=hit,x)
+        
+        self.log_pm_zocc_neighbor = p2logodds(0.7) #p(m=occupied|z=hit,x,isneigbor)
+        self.log_pm_zfree_neighbor = p2logodds(0.55) #p(m=free|z=hit,x,isneigbor)
         
     def show(self,ax : plt.Axes = None):
         if ax == None:
@@ -65,11 +68,20 @@ class gridmap2:
             if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
                 self.gridOcc[c[0],c[1]] += 1
                 self.gridLog[c[0],c[1]] += self.log_pm_zocc 
+                
+                neighbors= self.neighbors2(c)
+                for cn in neighbors:
+                    self.gridLog[cn[0],cn[1]] += self.log_pm_zocc_neighbor 
+
         for c in c_free:
             if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
                 #product of c2d - (i,j)
                 self.gridFree[c[0],c[1]] += 1
-                self.gridLog[c[0],c[1]] -= self.log_p_zfree
+                self.gridLog[c[0],c[1]] -= self.log_pm_zfree
+
+                neighbors= self.neighbors2(c)
+                for cn in neighbors:
+                    self.gridLog[cn[0],cn[1]] -= self.log_pm_zfree_neighbor 
 
     def inverse_measurement_model(self, x : pose2, a : np.ndarray, z : np.ndarray): #returns p(m|xt,zt)
     #inspired from:
@@ -88,7 +100,41 @@ class gridmap2:
             c_free.extend(bresenham2(disc_x[0],disc_x[1],disc_lm[0],disc_lm[1]))
         return c_occ, c_free
 
+    def neighbors2(self,c,a = 1):
+        bot = max(c[0]-a,0)
+        top = min(c[0]+a,self.height-1)
+        left = max(c[1]-a,0)
+        right = min(c[1]+a,self.width-1)
         
+        i = np.arange(bot,top+1)
+        j = np.arange(left,right+1)
+        iijj = np.meshgrid(i,j)
+             
+        return np.hstack((iijj[0].reshape(-1,1),iijj[1].reshape(-1,1))).tolist()
+
+    def neighbors(self,c):
+        #taken from https://github.com/Adrianndp/DjikstraVis/blob/master/brain.py
+        x = c[0]; y = c[1]
+        neighbors = []
+        width = self.width - 1
+        if (x + 1) < width:
+            neighbors.append((x + 1, y))
+        if (y + 1) < width:
+            neighbors.append((x, y + 1))
+        if (y + 1) < width and (x + 1) < width:
+            neighbors.append((x + 1, y + 1))
+        if (x - 1) > 0:
+            neighbors.append((x -1, y))
+        if (y - 1) > 0:
+            neighbors.append((x, y - 1))
+        if (x - 1) > 0 and (y - 1) > 0:
+            neighbors.append((x - 1, y - 1))
+        if (x + 1) < width and (y - 1) > 0:
+            neighbors.append((x + 1, y - 1))
+        if (x - 1) > 0 and (y + 1) < width:
+            neighbors.append((x - 1, y + 1))
+        return neighbors
+
 def p2logodds(p):
     return np.log(p / (1 - p))
 
