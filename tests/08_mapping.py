@@ -2,7 +2,7 @@ import numpy as np
 from particleFilter.maps import o3d_meshes
 from particleFilter.geometry import pose2
 
-from particleFilter.RBPF.gridmaps import gridmap2
+from particleFilter.RBPF.gridmaps import gridmap2, logodds2p, p2logodds
 from particleFilter.RBPF.sensors import laser2
 
 import particleFilter.plotting as plotting
@@ -171,7 +171,6 @@ gmap = gridmap2(30,17,0.1)
 #-------- initalize robot
 angles = np.radians(np.linspace(-180,180,50))
 gt_x = robot(19.4,0.6,np.pi/2,angles)
-x0 = gt_x.pose()
 Z_COV = np.array([0.01])
 
 laser = laser2(angles)
@@ -214,7 +213,34 @@ with plt.ion():
         plt.pause(0.01)
         if i%5==0:
             gmap.show(ax_grid)
-plt.show()
+# plt.show()
+
+ij = gmap.get_pGrid()>0.8
+gmap.gridLogOdds[ij] = p2logodds(0.7)
+gt_x = robot(19.4,0.6,np.pi/2,angles)
+with plt.ion():
+    for i,u in enumerate(gt_odom):
+        gt_x += u
+        
+        #compute noisey map measurement
+        z_perfect = worldMap.forward_measurement_model(gt_x)
+        z_cov = np.kron(np.eye(int(z_perfect.size)),Z_COV) # amount of measurements might differ depending on gt_x0
+        z_noise = np.random.multivariate_normal(z_perfect.squeeze(), z_cov).reshape(-1,1)
+
+        c_occ, c_free = gmap.inverse_measurement_model(gt_x.pose(), gt_x.angles, z_noise)
+        gmap.update(c_occ,c_free)
+ 
+        #add visuals
+        graphics_gt.remove()
+        graphics_gt = plotting.plot_pose2(ax_world,[gt_x],color = 'r')
+        dx_meas = gt_x.x + z_noise*np.cos(gt_x.theta+angles).reshape(-1,1)
+        dy_meas = gt_x.y + z_noise*np.sin(gt_x.theta+angles).reshape(-1,1)
+        
+        graphics_meas.set_offsets(np.hstack((dx_meas,dy_meas)))
+
+        plt.pause(0.01)
+        if i%5==0:
+            gmap.show(ax_grid)
 
 
 
