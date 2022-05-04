@@ -99,39 +99,51 @@ def numfmt(v, x, pos): # your custom formatter function: divide by 100.0
     s = '{}'.format(x * v)
     return s
 
-def bresenham2(x1, y1, x2, y2):
-    bres = []
-    x = x1
-    y = y1
-    
-    delta_x = np.abs(x2-x1)
-    delta_y = np.abs(y2-y1)
+def bresenham2(sx, sy, ex, ey):
+    #from https://github.com/daizhirui/Bresenham2D/blob/main/bresenham2Dv1.py
+    #notes that there exists a better scikit version
+    """ Bresenham's ray tracing algorithm in 2D.
+    :param sx: x of start point of ray
+    :param sy: y of start point of ray
+    :param ex: x of end point of ray
+    :param ey: y of end point of ray
+    :return: cells along the ray
+    """
+    dx = abs(ex - sx)
+    dy = abs(ey - sy)
+    steep = abs(dy) > abs(dx)
+    if steep:
+        dx, dy = dy, dx  # swap
 
-    s_x = np.sign(x2 - x1)
-    s_y = np.sign(y2 - y1)
-
-    if delta_y > delta_x:
-        delta_x, delta_y = delta_y, delta_x
-        interchange = True
+    if dy == 0:
+        q = np.zeros((dx + 1, 1), dtype=int)
     else:
-        interchange = False
+        q = np.append(0, np.greater_equal(
+            np.diff(
+                np.mod(np.arange(  # If d exceed dx, decrease d by dx
+                    np.floor(dx / 2), -dy * dx + np.floor(dx / 2) - 1, -dy,
+                    dtype=int), dx
+                )  # offset np.floor(dx / 2) to compare d with 0.5dx
+            ), 0))
 
-    A = 2*delta_y
-    B = 2*(delta_y-delta_x)
-    E = 2* delta_y - delta_x
-
-    bres.append((x,y))
-    for i in range(1,delta_x):
-        if E < 0:
-            if interchange:
-                y += s_y
-            else:
-                x += s_x
-            E = E + A
+    if steep:
+        if sy <= ey:
+            y = np.arange(sy, ey + 1)
         else:
-            y += s_y
-            x += s_x
+            y = np.arange(sy, ey - 1, -1)
+        if sx <= ex:
+            x = sx + np.cumsum(q)
+        else:
+            x = sx - np.cumsum(q)
+    else:
+        if sx <= ex:
+            x = np.arange(sx, ex + 1)
+        else:
+            x = np.arange(sx, ex - 1, -1)
+        if sy <= ey:
+            y = sy + np.cumsum(q)
+        else:
+            y = sy - np.cumsum(q)
 
-        bres.append((x,y))
-
+    bres = np.vstack((x,y)).T.tolist()
     return bres
