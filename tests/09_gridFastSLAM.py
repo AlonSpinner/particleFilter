@@ -3,13 +3,14 @@ from particleFilter.maps import o3d_meshes
 from particleFilter.geometry import pose2
 
 from particleFilter.RBPF.gridmaps import gridmap2, logodds2p, p2logodds
+from particleFilter.RBPF.sensors import laser2
 
 import particleFilter.plotting as plotting
 import matplotlib.pyplot as plt
 import open3d as o3d
 
-import os
 import pickle
+import os
 
 #enviorment same as test 05 just without floor and shifted
 def createStructure():
@@ -167,8 +168,12 @@ for p in products:
     rayCastingScene.add_triangles(p)
 worldMap = o3d_meshes(patches2d,rayCastingScene)
 
-#-------- create empty gridmap to be filled
-gmap = gridmap2(30,17,0.1)
+#-------- load grid map from test_08
+dir_path = os.path.dirname(os.path.realpath(__file__))
+filename = os.path.join(dir_path,'out','08_map.pickle')
+file = open(filename, "rb")
+gmap = pickle.load(file)
+file.close()
 
 #-------- initalize robot
 angles = np.radians(np.linspace(-180,180,50))
@@ -217,10 +222,8 @@ with plt.ion():
 gmap.gridLogOdds[gmap.get_pGrid()>0.8] = p2logodds(0.7)
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-filename = os.path.join(dir_path,'out','08_map.pickle')
-file = open(filename, "wb")
-pickle.dump(gmap,file)
-file.close()
+filename = os.path.join(dir_path,'out','08_map')
+np.save(filename,gmap.gridLogOdds)
 print(f'map saved to {filename}')
 
 

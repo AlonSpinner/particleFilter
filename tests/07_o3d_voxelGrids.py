@@ -24,9 +24,8 @@ pcd1.transform(T)
 
 print('Displaying voxel grid ...')
 voxel_grid = o3d.geometry.VoxelGrid.create_from_point_cloud(pcd,
-                                                            voxel_size=0.05)
-                                                           
-#o3d.visualization.draw([voxel_grid])
+                                                            voxel_size=0.05)                                         
+o3d.visualization.draw([voxel_grid])
 
 vg = o3d.geometry.VoxelGrid()
 voxels = []
