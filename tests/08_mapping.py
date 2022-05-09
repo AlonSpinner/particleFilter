@@ -169,6 +169,9 @@ worldMap = o3d_meshes(patches2d,rayCastingScene)
 
 #-------- create empty gridmap to be filled
 gmap = gridmap2(25,10,0.1)
+gmap.angles = np.radians(np.linspace(-180,180,50))
+gmap.alpha = 0.2
+gmap.beta = 360.0/50
 
 #-------- initalize robot
 angles = np.radians(np.linspace(-180,180,50))
@@ -199,7 +202,7 @@ with plt.ion():
         z_cov = np.kron(np.eye(int(z_perfect.size)),Z_COV) # amount of measurements might differ depending on gt_x0
         z_noise = np.random.multivariate_normal(z_perfect.squeeze(), z_cov).reshape(-1,1)
 
-        c_occ, c_free = gmap.inverse_measurement_model(gt_x.pose(), gt_x.angles, z_noise)
+        c_occ, c_free = gmap.inverse_measurement_model2(gt_x.pose(), z_noise)
         gmap.update(c_occ,c_free)
  
         #add visuals
@@ -221,6 +224,8 @@ filename = os.path.join(dir_path,'out','08_map.pickle')
 file = open(filename, "wb")
 pickle.dump(gmap,file)
 file.close()
+
+plt.show()
 print(f'map saved to {filename}')
 
 

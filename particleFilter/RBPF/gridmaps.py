@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import numpy as np
 import matplotlib.pyplot as plt
 from particleFilter.geometry import pose2
@@ -21,20 +22,27 @@ class gridmap2:
         
         self.log_pm_zocc_neighbor = p2logodds(0.7) #p(m=occupied|z=hit,x,isneigbor)
         self.log_pm_zfree_neighbor = p2logodds(0.55) #p(m=free|z=hit,x,isneigbor)
+
+        self.zmax = 5.0 #sensor max range
+        self.beta = np.radians(10) #ray width in rad
+        self.alpha = 0.1 #[m] - wallthickness parameter
+        self.angles = np.linspace(-np.pi,+np.pi,180)
+        self.raymap = self.localgrid2raymap()
+
+        self.pose  = pose2(-self.zmax,-self.zmax,0) #grid map transform. In this world there exists only positives
         
-    def c2d(self,loc): #continous2discrete
+    def c2d(self,xy): #continous2discrete
+        #we assume order <x,y> is provided. if array it is of size 2xm
+        
         # We simplify the whole grid situations to this setting:
         # → x
         #↓
         #y
-        
         #* there are no negative values in the map
-        #* this is only a storage world. when we want to present, we flip the y axis 
-
-        x,y = loc #unpack
-        i = np.int(y / self.res)
-        j = np.int(x / self.res)
-        return (i,j)
+        
+        yx = np.fliplr(self.pose.transformTo(xy))
+        ij = np.round(yx / self.res).astype(int)
+        return ij
 
     def d2c(self,loc): #discrete2continous
         i, j = loc #unpack
@@ -60,7 +68,51 @@ class gridmap2:
 
                 neighbors= self.neighbors2(c)
                 for cn in neighbors:
-                    self.gridLogOdds[cn[0],cn[1]] -= self.log_pm_zfree_neighbor 
+                    self.gridLogOdds[cn[0],cn[1]] -= self.log_pm_zfree_neighbor
+
+    def localGrid(self):
+        #create local grid - should be called only once when initalizing
+        #-------------
+        #|         k |
+        #|      ---->|
+        #|           |
+        #|___________|
+        # <----n---->
+        k = int(self.zmax/np.sqrt(2) / self.res) #sqrt(2) due to pythgoras. max range is a diagonal
+        n = 2 * k + 1
+
+        r = np.linspace(-self.zmax, +self.zmax, n)
+        x_grid, y_grid = np.meshgrid(r,r)
+        bearing_grid = np.arctan2(y_grid,x_grid)
+        range_grid = np.sqrt(x_grid**2 + y_grid**2)
+        return x_grid, y_grid, bearing_grid, range_grid
+
+    def localgrid2raymap(self)->list:
+        x_grid, y_grid, bearing_grid, range_grid = self.localGrid()
+        raymap = []
+        for a in self.angles:
+            e = np.angle(np.exp(bearing_grid*1j)*np.exp(-a*1j)) #need to use exponential mapping to solve for cut-offs in bearing map
+            idx = np.argwhere(abs(e) < self.beta)
+            x = x_grid[idx[:, 0], idx[:, 1]]
+            y = y_grid[idx[:, 0], idx[:, 1]]
+            t = np.vstack((x,y))
+            z = range_grid[idx[:, 0], idx[:, 1]]
+            raymap.append(ray(a,t,z,idx))
+        return raymap
+
+    def inverse_measurement_model2(self, x: pose2, z: np.ndarray):
+        #based on "Algorithm inverse_range_sensor_model" from page 288 Probalistic Robotics
+        rm = self.raymap
+        c_occ = []
+        c_free = []
+        for i,zi in enumerate(z):   
+            # self.c2d(x.transformFrom(rm[i].t))
+            occ = np.argwhere((abs(rm[i].z - zi) < self.alpha/2) & (rm[i].z < self.zmax))
+            free = np.argwhere(abs(rm[i].z < zi))
+
+            c_occ.extend(x.c2d(rm[i].t[occ]))
+            c_free.extend(x.c2d(rm[i].t[free]))
+        return c_occ, c_free
 
     def inverse_measurement_model(self, x : pose2, a : np.ndarray, z : np.ndarray): #returns p(m|xt,zt)
     #inspired from:
@@ -159,7 +211,12 @@ def bresenham2(sx, sy, ex, ey):
     :return: cells along the ray
     """
     dx = abs(ex - sx)
-    dy = abs(ey - sy)
+    dy = abs(ey - sy)    @dataclass(frozen = True)
+    class ray:
+        a : float #angle in radians
+        x : np.ndarray
+        y : np.ndarray
+        z : np.ndarray
     steep = abs(dy) > abs(dx)
     if steep:
         dx, dy = dy, dx  # swap
@@ -196,3 +253,10 @@ def bresenham2(sx, sy, ex, ey):
 
     bres = np.vstack((x,y)).T.tolist()
     return bres
+
+@dataclass(frozen = True)
+class ray:
+    a : float #angle in radians
+    t : np.ndarray # locations of middle of cells (2xm)
+    z : np.ndarray # ranges to cells from (0,0)
+    idx : np.ndarray
