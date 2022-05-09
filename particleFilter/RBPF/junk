@@ -1,0 +1,28 @@
+def inverse_measurement_model(self, x : pose2, a : np.ndarray, z : np.ndarray): #returns p(m|xt,zt)
+#inspired from:
+#from probablistic robotics chapter 9, table 9.2
+#Algorithm inverse_range_sensor_model
+
+#zt - array of range measurements correlating to laser's angles
+disc_x = self.c2d(x.t())
+c_occ = []
+c_free = []
+for ai,zi in zip(a,z):
+    dp = (zi*[np.cos(ai),np.sin(ai)]).reshape(-1,1)
+    lm = x.transformFrom(np.array(dp))
+    disc_lm = self.c2d(lm)
+    c_occ.append(disc_lm)
+    c_free.extend(bresenham2(disc_x[0],disc_x[1],disc_lm[0],disc_lm[1]))
+return c_occ, c_free
+
+def neighbors2(self,c,a = 1):
+bot = max(c[0]-a,0)
+top = min(c[0]+a,self.height-1)
+left = max(c[1]-a,0)
+right = min(c[1]+a,self.width-1)
+
+i = np.arange(bot,top+1)
+j = np.arange(left,right+1)
+iijj = np.meshgrid(i,j)
+     
+return np.hstack((iijj[0].reshape(-1,1),iijj[1].reshape(-1,1))).tolist()
