@@ -25,8 +25,35 @@ class gridmap2:
         self.log_pm_zfree_neighbor = p2logodds(0.55) #p(m=free|z=hit,x,isneigbor)
 
         self.pose  = pose2(0,0,0) #grid map transform. grid map exists only in positive quadrant
+
+    def update(pose: pose2, z : np.ndarray, z_cov : np.ndarray):
+        #transform laser measurements z from ego->world->map
+        #update cells with inverse_measurement_model
+
+        return
+
+    def measurementProbability(pose: pose2, z : np.ndarray, z_cov : np.ndarray)->float:
+        #ajdusted from probablistic robotics: "beam_range_finder_model" - page 158
+        #sample ML measurement zhat from p(z|x,m)
         
-    def c2d(self,xy): #continous2discrete ~ worldToMap
+        #     |---
+        #     |  |-----
+        #------
+        
+        #p(z|x,m) ~ N(x.range(m),COV); COV = z_cov * 1/entropy(p(m))
+        #entropy(p(m)) = -p(m)*log(p(m))
+        #transform laser measurements z from ego->world->map
+        
+        #create zhat = forward_measurement_model(x,m)
+        #for each angle compute distribution p(z|x,m)
+
+        #compute p(z) from distribution of 
+        
+        
+
+        return
+        
+    def worldToMap(self,xy): #continous2discrete ~ worldToMap
         #we assume order <x,y> is provided. if array it is of size 2xm
         
         # We simplify the whole grid situations to this setting:
@@ -39,7 +66,7 @@ class gridmap2:
         ij = np.round(yx / self.res).astype(int)
         return ij
 
-    def d2c(self,ij): #discrete2continous ~ mapToWorld
+    def MapToWorld(self,ij): #discrete2continous ~ mapToWorld
         xy = self.pose.transformFrom((np.flipud(ij)+0.5) * self.res)
         return (xy)
 
@@ -78,6 +105,8 @@ class gridmap2:
                 c_free.append(self.c2d(x.transformFrom(laser.localraymap[i].t[:,idx_free])))
 
         return np.hstack(c_occ), np.hstack(c_free)
+
+
 
     def neighbors(self,c,a = 1):
         bot = max(c[0]-a,0)
