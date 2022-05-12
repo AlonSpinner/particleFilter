@@ -13,13 +13,11 @@ class particle2:
         map : gridmap2
 
 class RBPF:
-    def __init__(self, world ,m : gridmap2 ,initial_poses : list[pose2]):
+    def __init__(self, m : gridmap2 ,initial_poses : list[pose2]):
         
         self.N_PARTICLES : int = len(initial_poses) #amount of particles
         self.particles = [particle2(ip, m) for ip in initial_poses]
         self.weights : np.ndarray = np.ones(self.N_PARTICLES) * 1/self.N_PARTICLES
-        
-        self.world = world #world map with z = forward_measurement_model(pose)
         
         self.ETA_THRESHOLD : float = 4.0/self.N_PARTICLES # bigger - lower threshold
 
