@@ -101,11 +101,11 @@ class o3d_meshes(Map):
             self.scene =  rayCastingScene #o3d.cuda.pybind.t.geometry.RaycastingScene, for actual measurement model
             self.patches2d = patches2d #{vertices,faces,color}, for drawing only
 
-        def forward_measurement_model(self, x):
+        def forward_measurement_model(self, x : pose2, angles : np.ndarray):
             zmax = 10.0
 
             # http://www.open3d.org/docs/release/python_api/open3d.t.geometry.RaycastingScene.html
-            rays = o3d.core.Tensor([[x.x,x.y,0,np.cos(x.theta+a),np.sin(x.theta+a),0] for a in x.angles],
+            rays = o3d.core.Tensor([[x.x,x.y,0,np.cos(x.theta+a),np.sin(x.theta+a),0] for a in angles],
                        dtype=o3d.core.Dtype.Float32)
             ans = self.scene.cast_rays(rays)
             z = ans['t_hit'].numpy()

@@ -4,7 +4,7 @@ from particleFilter.RBPF.sensors import laser
 from particleFilter.RBPF.utils import bresenham2, logodds2p
 import numpy as np
 
-def inverse_measurement_model(sensor : laser, m : gridmap2, x : pose2, z : float):
+def inverse_measurement_model(sensor : laser, m : gridmap2, x : pose2, z : np.ndarray):
     # first: we update for each ray individually. each ray is a sensor
     #
     # second: given ray measurement ai, zi  we need to understand which cells in the map were hit and which werent.
@@ -29,7 +29,7 @@ def inverse_measurement_model(sensor : laser, m : gridmap2, x : pose2, z : float
     #treet every zi as if it is an independent measurement
     disc_x = m.worldToMap(x.t())
     for ai,zi in zip(sensor.angles,z):
-        dp = zi * [np.cos(ai), np.sin(ai)].reshape(-1,1)
+        dp = (zi * [np.cos(ai), np.sin(ai)]).reshape(-1,1)
         lm = x.transformFrom(np.array(dp))
         disc_lm = m.worldToMap(lm)
         c_occ = [disc_lm]

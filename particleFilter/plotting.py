@@ -38,7 +38,7 @@ def plot_cov_ellipse(ax, pos, cov, nstd=1, facecolor = 'none',edgecolor = 'b' , 
         
         return graphics
 
-def spawnWorld(xrange = None, yrange = None):
+def spawnWorld(xrange = None, yrange = None) -> (plt.Figure,plt.Axes):
 
     fig = plt.figure()
     ax = fig.add_subplot(111)

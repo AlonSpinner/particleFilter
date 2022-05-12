@@ -2,8 +2,9 @@ import numpy as np
 from particleFilter.maps import o3d_meshes
 from particleFilter.geometry import pose2
 
-from particleFilter.RBPF.gridmaps import gridmap2, logodds2p, p2logodds
-from particleFilter.RBPF.sensors import laser2
+from particleFilter.RBPF.gridmaps import gridmap2
+from particleFilter.RBPF.sensors import laser
+from particleFilter.RBPF.models import inverse_measurement_model
 
 import particleFilter.plotting as plotting
 import matplotlib.pyplot as plt
@@ -142,23 +143,6 @@ def o3d_to_2patches(o3d_mesh):
     
     return patches2d
 #wrapper class to include angles
-class robot():
-    def __init__(self,x,y,theta,laser):
-        self.x = x
-        self.y = y
-        self.theta = theta
-        self.laser = laser
-        self.angles = laser.angles
-
-    def __add__(self,u):
-        p = self.pose() + u
-        return robot(p.x,p.y,p.theta,self.laser)
-
-    def pose(self):
-        return pose2(self.x,self.y,self.theta)
-
-    def local(self):
-        return self.pose().local()
 
 #-------- create world map
 products = createStructure()
@@ -172,51 +156,49 @@ worldMap = o3d_meshes(patches2d,rayCastingScene)
 #-------- create empty gridmap to be filled
 gMap = gridmap2(25,10,0.1)
 #------- laser sensor on robot
-laser = laser2(angles = np.radians(np.linspace(-180,180,50)), zmax = 2.0, beta = np.radians(5), alpha = 0.2, res = 0.1)
+sensor = laser(angles = np.radians(np.linspace(-180,180,50)), zmax = 2.0)
 #-------- initalize robot
-gt_x = robot(19.4,0.6,np.pi/2,laser)
+x = pose2(19.4,0.6,np.pi/2) #ground truth
 Z_COV = np.array([0.01])
 
 #----------build odometry (circle around)
 straight = [pose2(0.1,0,0)]
 turnLeft = [pose2(0,0,np.pi/2/4)]
 turnRight = [pose2(0,0,-np.pi/2/4)]
-gt_odom = straight*15 + turnLeft*4 + straight*10*5 + turnRight*4 + straight*10*5 + turnRight*4 + straight*40 + turnRight*4 + straight*20
+odom = straight*15 + turnLeft*4 + straight*10*5 + turnRight*4 + straight*10*5 + turnRight*4 + straight*40 + turnRight*4 + straight*20
 
 #----- prep visuals
 _, ax_world = plotting.spawnWorld(xrange = (8,22), yrange = (0,10))
 graphics_meas = ax_world.scatter([],[],s = 10, color = 'r')
 worldMap.show(ax_world)
-graphics_gt = plotting.plot_pose2(ax_world,[gt_x],color = 'r')
+graphics_gt = plotting.plot_pose2(ax_world,[x],color = 'r')
 ax_grid = gMap.show()
 plt.draw(); plt.pause(0.5)
 
 #------ run simulation
 with plt.ion():
-    for i,u in enumerate(gt_odom):
-        gt_x += u
+    for i,u in enumerate(odom):
+        x += u
         
         #compute noisey map measurement
-        z_perfect = worldMap.forward_measurement_model(gt_x)
+        z_perfect = worldMap.forward_measurement_model(x,sensor.angles)
         z_cov = np.kron(np.eye(int(z_perfect.size)),Z_COV) # amount of measurements might differ depending on gt_x0
         z_noise = np.random.multivariate_normal(z_perfect.squeeze(), z_cov).reshape(-1,1)
 
-        c_occ, c_free = gMap.inverse_measurement_model(gt_x.pose(), z_noise, gt_x.laser)
+        c_occ, c_free = inverse_measurement_model(sensor,gMap,x,z_noise)
         gMap.update(c_occ,c_free)
  
         #add visuals
         graphics_gt.remove()
-        graphics_gt = plotting.plot_pose2(ax_world,[gt_x],color = 'r')
-        dx_meas = gt_x.x + z_noise*np.cos(gt_x.theta+laser.angles).reshape(-1,1)
-        dy_meas = gt_x.y + z_noise*np.sin(gt_x.theta+laser.angles).reshape(-1,1)
+        graphics_gt = plotting.plot_pose2(ax_world,[x],color = 'r')
+        dx_meas = x.x + z_noise*np.cos(x.theta+sensor.angles).reshape(-1,1)
+        dy_meas = x.y + z_noise*np.sin(x.theta+sensor.angles).reshape(-1,1)
         
         graphics_meas.set_offsets(np.hstack((dx_meas,dy_meas)))
 
         plt.pause(0.01)
         if i%5==0:
             gMap.show(ax_grid)
-
-gMap.gridLogOdds[gMap.get_pGrid()>0.8] = p2logodds(0.7)
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 filename = os.path.join(dir_path,'out','08_map.pickle')
