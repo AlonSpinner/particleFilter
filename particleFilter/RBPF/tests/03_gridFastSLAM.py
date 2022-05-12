@@ -178,7 +178,7 @@ for i in range(n_particles):
     y = np.random.uniform(0,2.5)
     theta = np.random.uniform(-np.pi,np.pi)
     initialParticles.append(pose2(x,y,theta))
-rbpf = RBPF(gMap,initialParticles)
+rbpf = RBPF(gMap,initialParticles,sensor)
 
 #----- prep visuals
 _, ax_world = plotting.spawnWorld(xrange = (8,22), yrange = (0,10))

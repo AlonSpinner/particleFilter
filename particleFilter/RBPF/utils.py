@@ -11,6 +11,10 @@ def numfmt(v, x, pos): # your custom formatter function: divide by 100.0
     s = '{}'.format(x * v)
     return s
 
+def flatten_list(lst):
+    #https://stackoverflow.com/questions/952914/how-to-make-a-flat-list-out-of-a-list-of-lists
+    return [item for sublist in lst for item in sublist]
+
 def bresenham2(sx, sy, ex, ey):
     #from https://github.com/daizhirui/Bresenham2D/blob/main/bresenham2Dv1.py
     #notes that there exists a better scikit version

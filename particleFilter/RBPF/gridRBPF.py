@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from particleFilter.geometry import pose2
 from particleFilter.RBPF.gridmaps import gridmap2
+from particleFilter.RBPF.sensors import laser
+from particleFilter.RBPF.models import measurement_probability
 from copy import deepcopy
 import numpy as np
 import time
@@ -13,11 +15,12 @@ class particle2:
         map : gridmap2
 
 class RBPF:
-    def __init__(self, m : gridmap2 ,initial_poses : list[pose2]):
+    def __init__(self, m : gridmap2 ,initial_poses : list[pose2], sensor : laser):
         
         self.N_PARTICLES : int = len(initial_poses) #amount of particles
         self.particles = [particle2(ip, m) for ip in initial_poses]
         self.weights : np.ndarray = np.ones(self.N_PARTICLES) * 1/self.N_PARTICLES
+        self.sensor : laser = sensor
         
         self.ETA_THRESHOLD : float = 4.0/self.N_PARTICLES # bigger - lower threshold
 
@@ -33,7 +36,7 @@ class RBPF:
             self.particles[i].pose += u_whiten
             
             #update weights
-            self.weights[i] *= self.particles[i].map.measurementProbability(self.particles[i].pose, z, z_cov)
+            self.weights[i] *= measurement_probability(self.sensor,self.particles[i].map,self.particles[i].pose,z,z_cov)
 
             #update map
             self.particles[i].map.update(self.particles[i].pose,z,z_cov)

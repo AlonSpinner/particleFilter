@@ -4,7 +4,7 @@ from particleFilter.geometry import pose2
 
 from particleFilter.RBPF.gridmaps import gridmap2
 from particleFilter.RBPF.sensors import laser
-from particleFilter.RBPF.models import inverse_measurement_model
+from particleFilter.RBPF.models import inverse_measurement_model, measurement_probability
 
 import particleFilter.plotting as plotting
 import matplotlib.pyplot as plt
@@ -186,6 +186,7 @@ with plt.ion():
         z_noise = np.random.multivariate_normal(z_perfect.squeeze(), z_cov).reshape(-1,1)
 
         c_occ, c_free = inverse_measurement_model(sensor,gMap,x,z_noise)
+        print(measurement_probability(sensor, gMap, x, z_noise, z_cov))
         gMap.update(c_occ,c_free)
  
         #add visuals

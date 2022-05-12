@@ -34,27 +34,27 @@ def inverse_measurement_model(sensor : laser, m : gridmap2, x : pose2, z : np.nd
         dp = (zi * [np.cos(ai), np.sin(ai)]).reshape(-1,1)
         lm = x.transformFrom(np.array(dp))
         disc_lm = m.worldToMap(lm)
-        c_occ.append(disc_lm)
-        c_free.extend(bresenham2(int(disc_x[0]),int(disc_x[1]),int(disc_lm[0]),int(disc_lm[1])))
-    return c_occ, c_free
+        c_occ.append([disc_lm])
+        c_free.append(bresenham2(int(disc_x[0]),int(disc_x[1]),int(disc_lm[0]),int(disc_lm[1])))
+    return c_occ, c_free #returns c_occ,c_free per ray
 
-# def measurementProbability(self,x: pose2, a : np.ndarray ,z : np.ndarray, z_cov : np.ndarray)->float:
-#     #ajdusted from probablistic robotics: "beam_range_finder_model" - page 158
-#     #sample ML measurement zhat from p(z|x,m)
+def measurement_probability(sensor : laser, m : gridmap2, x : pose2, z : np.ndarray, z_cov)->float:
+    #ajdusted from probablistic robotics: "beam_range_finder_model" - page 158
+    #sample ML measurement zhat from p(z|x,m)
     
-#     #p(z|x,m) ~ N(x.range(m),COV); COV = z_cov * 1/entropy(p(m))
-#     #entropy(p(m)) = -p(m)*log(p(m))
-#     #transform laser measurements z from ego->world->map
+    #p(z|x,m) ~ N(x.range(m),COV); COV = z_cov * 1/entropy(p(m))
+    #entropy(p(m)) = -p(m)*log(p(m))
+    #transform laser measurements z from ego->world->map
     
-#     #create zhat = forward_measurement_model(x,m)
-#     #for each angle compute distribution p(z|x,m)
+    #create zhat = forward_measurement_model(x,m)
+    #for each angle compute distribution p(z|x,m)
 
-#     #compute p(z) from distribution of 
-
-#     p = 1
-#     for ai, zi in zip(a,z):
-#         #compute probabilty mass function from cells between robot and zhit (make sure its normalized)
-#         #sample probability of hit
-#         cells_occ, cells_free = inverse_measurement_model(x,ai,zi)
-#         p *= logodds2p(self.gridLogOdds[cells_occ]) / sum(logodds2p(self.gridLogOdds[cells_occ,cells_free]))
-#     return p 
+    #compute p(z) from distribution of 
+    
+    p = 1
+    for ai,zi in zip(sensor.angles,z):
+        #compute probabilty mass function from cells between robot and zhit (make sure its normalized)
+        #sample probability of hit
+        cells_occ, cells_free = inverse_measurement_model(x,ai,zi)
+        p *= logodds2p(self.gridLogOdds[cells_occ]) / sum(logodds2p(self.gridLogOdds[cells_occ,cells_free]))
+    return p 
