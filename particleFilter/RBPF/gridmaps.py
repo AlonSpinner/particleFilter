@@ -25,13 +25,14 @@ class gridmap2:
 
         self.pose  = pose2(0,0,0) #grid map transform. grid map exists only in positive quadrant
 
-    def update(self,cells_occ, cells_free):
+    def update(self,cells_occ, cells_free, n = 0):
+        # n - distance in cells for neighbors
         for c in cells_occ:
             if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
                 self.gridOcc[c[0],c[1]] += 1
                 self.gridLogOdds[c[0],c[1]] += self.log_pm_zocc 
                 
-                neighbors= self.neighbors(c)
+                neighbors= self.neighbors(c,n)
                 for cn in neighbors:
                     self.gridLogOdds[cn[0],cn[1]] += self.log_pm_zocc_neighbor 
         for c in cells_free:
@@ -39,7 +40,7 @@ class gridmap2:
                 self.gridFree[c[0],c[1]] += 1
                 self.gridLogOdds[c[0],c[1]] -= self.log_pm_zfree
 
-                neighbors= self.neighbors(c)
+                neighbors= self.neighbors(c,n)
                 for cn in neighbors:
                     self.gridLogOdds[cn[0],cn[1]] -= self.log_pm_zfree_neighbor 
         return
@@ -62,6 +63,8 @@ class gridmap2:
         return (xy)
 
     def neighbors(self,c,a = 1):
+        if a == 0:
+            return []
         bot = max(c[0]-a,0)
         top = min(c[0]+a,self.height-1)
         left = max(c[1]-a,0)

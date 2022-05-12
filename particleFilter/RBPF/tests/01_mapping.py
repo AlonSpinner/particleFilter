@@ -13,6 +13,8 @@ import open3d as o3d
 import os
 import pickle
 
+from sklearn import neighbors
+
 #enviorment same as test 05 in particleFilter just without floor and shifted
 def createStructure():
 

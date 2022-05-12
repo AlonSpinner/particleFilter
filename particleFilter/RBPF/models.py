@@ -28,12 +28,14 @@ def inverse_measurement_model(sensor : laser, m : gridmap2, x : pose2, z : np.nd
 
     #treet every zi as if it is an independent measurement
     disc_x = m.worldToMap(x.t())
+    c_occ = []
+    c_free = []
     for ai,zi in zip(sensor.angles,z):
         dp = (zi * [np.cos(ai), np.sin(ai)]).reshape(-1,1)
         lm = x.transformFrom(np.array(dp))
         disc_lm = m.worldToMap(lm)
-        c_occ = [disc_lm]
-        c_free = bresenham2(int(disc_x[0]),int(disc_x[1]),int(disc_lm[0]),int(disc_lm[1]))
+        c_occ.append(disc_lm)
+        c_free.extend(bresenham2(int(disc_x[0]),int(disc_x[1]),int(disc_lm[0]),int(disc_lm[1])))
     return c_occ, c_free
 
 # def measurementProbability(self,x: pose2, a : np.ndarray ,z : np.ndarray, z_cov : np.ndarray)->float:
