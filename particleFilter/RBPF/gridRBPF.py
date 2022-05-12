@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from particleFilter.geometry import pose2
 from particleFilter.RBPF.gridmaps import gridmap2
 from particleFilter.RBPF.sensors import laser
-from particleFilter.RBPF.models import measurement_probability
+from particleFilter.RBPF.models import inverse_measurement_model, measurement_probability
+from particleFilter.RBPF.utils import flatten_list
 from copy import deepcopy
 import numpy as np
 import time
@@ -32,14 +33,15 @@ class RBPF:
         for i in range(self.N_PARTICLES):
             
             #create proposal distribution - move particle poses 
-            u_whiten = np.random.multivariate_normal(u,u_cov)
-            self.particles[i].pose += u_whiten
+            noise = np.random.multivariate_normal(np.zeros(u.size),u_cov)
+            self.particles[i].pose += u + pose2(noise[0],noise[1],noise[2])
             
             #update weights
             self.weights[i] *= measurement_probability(self.sensor,self.particles[i].map,self.particles[i].pose,z,z_cov)
 
             #update map
-            self.particles[i].map.update(self.particles[i].pose,z,z_cov)
+            c_occ, c_free = inverse_measurement_model(self.sensor,self.particles[i].map,self.particles[i].pose,z)
+            self.particles[i].map.update(flatten_list(c_occ),flatten_list(c_free),1)
 
         #normalize
         sm = self.weights.sum()

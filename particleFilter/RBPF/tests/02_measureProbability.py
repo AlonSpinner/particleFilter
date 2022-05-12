@@ -202,15 +202,7 @@ with plt.ion():
         plt.pause(0.01)
         if i%5==0:
             gMap.show(ax_grid)
-
-dir_path = os.path.dirname(os.path.realpath(__file__))
-filename = os.path.join(dir_path,'out','01_map.pickle')
-file = open(filename, "wb")
-pickle.dump(gMap,file)
-file.close()
-
 plt.show()
-print(f'map saved to {filename}')
 
 
 

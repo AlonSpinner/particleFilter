@@ -174,10 +174,10 @@ odom = straight*15 + turnLeft*4 + straight*10*5 + turnRight*4 + straight*10*5 + 
 n_particles = 5
 initialParticles = []
 for i in range(n_particles):
-    x = np.random.uniform(-10,0)
-    y = np.random.uniform(0,2.5)
-    theta = np.random.uniform(-np.pi,np.pi)
-    initialParticles.append(pose2(x,y,theta))
+    p_x = np.random.uniform(-10,0)
+    p_y = np.random.uniform(0,2.5)
+    p_theta = np.random.uniform(-np.pi,np.pi)
+    initialParticles.append(pose2(p_x,p_y,p_theta))
 rbpf = RBPF(gMap,initialParticles,sensor)
 
 #----- prep visuals
@@ -202,29 +202,20 @@ with plt.ion():
         z_cov = np.kron(np.eye(int(z_perfect.size)),Z_COV) # amount of measurements might differ depending on x
         z_noise = np.random.multivariate_normal(z_perfect.squeeze(), z_cov).reshape(-1,1)
 
-        c_occ, c_free = inverse_measurement_model(sensor,gMap,x,z_noise)
         rbpf.step(z_noise,z_cov,u_noise,U_COV)
  
         #add visuals
         graphics_gt.remove()
         graphics_gt = plotting.plot_pose2(ax_world,[x],color = 'r')
         dx_meas = x.x + z_noise*np.cos(x.theta+sensor.angles).reshape(-1,1)
-        dy_meas = x.y + z_noise*np.sin(x.theta+sensor.angles).reshape(-1,1)
-        
+        dy_meas = x.y + z_noise*np.sin(x.theta+sensor.angles).reshape(-1,1)        
         graphics_meas.set_offsets(np.hstack((dx_meas,dy_meas)))
 
         plt.pause(0.01)
         if i%5==0:
-            gMap.show(ax_grid)
-
-dir_path = os.path.dirname(os.path.realpath(__file__))
-filename = os.path.join(dir_path,'out','01_map.pickle')
-file = open(filename, "wb")
-pickle.dump(gMap,file)
-file.close()
+            rbpf.particles[np.argmax(rbpf.weights)].map.show()
 
 plt.show()
-print(f'map saved to {filename}')
 
 
 

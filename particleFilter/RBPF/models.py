@@ -60,6 +60,10 @@ def measurement_probability(sensor : laser, m : gridmap2, x : pose2, z : np.ndar
         #sample probability of hit
         normalizer = sum([logodds2p(m.gridLogOdds[c[0],c[1]]) for c in cells_free_i]) + \
             sum([logodds2p(m.gridLogOdds[c[0],c[1]]) for c in cells_occ_i])
+        
+        if normalizer - 0.5*(len(cells_free_i)+1) < 0.01: #ray did not pass over explored area to account for anything
+            continue
+        
         c_hit = cells_occ_i[0]
         p *= logodds2p(m.gridLogOdds[c_hit[0],c_hit[1]]) /(normalizer+1e-10)
     return p 
