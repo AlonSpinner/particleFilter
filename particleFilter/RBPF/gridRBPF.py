@@ -12,7 +12,7 @@ class particle2:
         pose : pose2
         map : gridmap2
 
-class pf_vanila_SE2:
+class RBPF:
     def __init__(self, world ,m : gridmap2 ,initial_poses : list[pose2]):
         
         self.N_PARTICLES : int = len(initial_poses) #amount of particles

@@ -1,10 +1,9 @@
-from dataclasses import dataclass
 import numpy as np
 import matplotlib.pyplot as plt
 from particleFilter.geometry import pose2
+from particleFilter.RBPF.utils import p2logodds, logodds2p, numfmt
 import matplotlib.ticker as tkr     # has classes for tick-locating and -formatting
 from functools import partial
-from particleFilter.RBPF.sensors import laser2
 
 class gridmap2:
     def __init__(self,  maxX, maxY, res):
@@ -26,33 +25,25 @@ class gridmap2:
 
         self.pose  = pose2(0,0,0) #grid map transform. grid map exists only in positive quadrant
 
-    def update(pose: pose2, z : np.ndarray, z_cov : np.ndarray):
-        #transform laser measurements z from ego->world->map
-        #update cells with inverse_measurement_model
+    def update(self,cells_occ, cells_free):
+        for c in cells_occ:
+            if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
+                self.gridOcc[c[0],c[1]] += 1
+                self.gridLogOdds[c[0],c[1]] += self.log_pm_zocc 
+                
+                neighbors= self.neighbors(c)
+                for cn in neighbors:
+                    self.gridLogOdds[cn[0],cn[1]] += self.log_pm_zocc_neighbor 
+        for c in cells_free:
+            if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
+                self.gridFree[c[0],c[1]] += 1
+                self.gridLogOdds[c[0],c[1]] -= self.log_pm_zfree
 
+                neighbors= self.neighbors(c)
+                for cn in neighbors:
+                    self.gridLogOdds[cn[0],cn[1]] -= self.log_pm_zfree_neighbor 
         return
 
-    def measurementProbability(pose: pose2, z : np.ndarray, z_cov : np.ndarray)->float:
-        #ajdusted from probablistic robotics: "beam_range_finder_model" - page 158
-        #sample ML measurement zhat from p(z|x,m)
-        
-        #     |---
-        #     |  |-----
-        #------
-        
-        #p(z|x,m) ~ N(x.range(m),COV); COV = z_cov * 1/entropy(p(m))
-        #entropy(p(m)) = -p(m)*log(p(m))
-        #transform laser measurements z from ego->world->map
-        
-        #create zhat = forward_measurement_model(x,m)
-        #for each angle compute distribution p(z|x,m)
-
-        #compute p(z) from distribution of 
-        
-        
-
-        return
-        
     def worldToMap(self,xy): #continous2discrete ~ worldToMap
         #we assume order <x,y> is provided. if array it is of size 2xm
         
@@ -61,7 +52,7 @@ class gridmap2:
         #↓
         #y
         #* there are no negative values in the map
-        
+    
         yx = np.flipud(self.pose.transformTo(xy))
         ij = np.round(yx / self.res).astype(int)
         return ij
@@ -69,44 +60,6 @@ class gridmap2:
     def MapToWorld(self,ij): #discrete2continous ~ mapToWorld
         xy = self.pose.transformFrom((np.flipud(ij)+0.5) * self.res)
         return (xy)
-
-    def update(self,c_occ,c_free):
-        for c in c_occ:
-            if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
-                self.gridOcc[c[0],c[1]] += 1
-                self.gridLogOdds[c[0],c[1]] += self.log_pm_zocc 
-                
-                neighbors= self.neighbors(c)
-                for cn in neighbors:
-                    self.gridLogOdds[cn[0],cn[1]] += self.log_pm_zocc_neighbor 
-
-        for c in c_free:
-            if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
-                #product of c2d - (i,j)
-                self.gridFree[c[0],c[1]] += 1
-                self.gridLogOdds[c[0],c[1]] -= self.log_pm_zfree
-
-                neighbors= self.neighbors(c)
-                for cn in neighbors:
-                    self.gridLogOdds[cn[0],cn[1]] -= self.log_pm_zfree_neighbor
-
-
-    def inverse_measurement_model(self, x: pose2, z: np.ndarray, laser : laser2):
-        #based on "Algorithm inverse_range_sensor_model" from page 288 Probalistic Robotics
-        c_occ = []
-        c_free = []
-        for i,zi in enumerate(z):
-            idx_occ = np.argwhere((abs(laser.localraymap[i].z - zi) < laser.alpha/2) & (laser.localraymap[i].z < laser.zmax)).squeeze()
-            if np.any(idx_occ):
-                c_occ.append(self.c2d(x.transformFrom(laser.localraymap[i].t[:,idx_occ])))
-    
-            idx_free = np.argwhere(abs(laser.localraymap[i].z < zi)).squeeze()
-            if np.any(idx_free):
-                c_free.append(self.c2d(x.transformFrom(laser.localraymap[i].t[:,idx_free])))
-
-        return np.hstack(c_occ), np.hstack(c_free)
-
-
 
     def neighbors(self,c,a = 1):
         bot = max(c[0]-a,0)
@@ -143,13 +96,3 @@ class gridmap2:
         ax.xaxis.set_major_formatter(fmt)
 
         return ax
-
-def p2logodds(p):
-    return np.log(p / (1 - p))
-
-def logodds2p(l):
-    return 1 - 1 / (1 + np.exp(l))
-        
-def numfmt(v, x, pos): # your custom formatter function: divide by 100.0
-    s = '{}'.format(x * v)
-    return s

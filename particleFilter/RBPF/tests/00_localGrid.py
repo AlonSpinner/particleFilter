@@ -1,20 +1,20 @@
-from particleFilter.RBPF.sensors import laser2
+from particleFilter.RBPF.sensors import beamer
 from particleFilter.geometry import pose2
 import matplotlib.pyplot as plt
 import numpy as np
 
-l = laser2()
+sensor = beamer()
 
-x_grid, y_grid, bearing_grid, range_grid = l.localGrid()
+x_grid, y_grid, bearing_grid, range_grid = sensor.localGrid()
 
-rays = l.localgrid2raymap()
+rays = sensor.localgrid2raymap()
 
 ray = rays[0]
 raygrid = np.zeros_like(bearing_grid)
 raygrid[ray.idx[:,0],ray.idx[:,1]] = range_grid[ray.idx[:,0],ray.idx[:,1]]
 
-l.pose = pose2(0,0,np.pi/4)
-worldPoints = l.pose.transformFrom(ray.t)
+sensor.pose = pose2(0,0,np.pi/4)
+worldPoints = sensor.pose.transformFrom(ray.t)
 
 fig, axs = plt.subplots(2,2)
 axs[0,0].pcolorfast(bearing_grid)

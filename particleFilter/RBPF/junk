@@ -26,3 +26,19 @@ j = np.arange(left,right+1)
 iijj = np.meshgrid(i,j)
      
 return np.hstack((iijj[0].reshape(-1,1),iijj[1].reshape(-1,1))).tolist()
+
+    # def inverse_measurement_model(self, x: pose2, z: np.ndarray, laser : laser2):
+    #     #based on "Algorithm inverse_range_sensor_model" from page 288 Probalistic Robotics
+    #     c_occ = []
+    #     c_free = []
+    #     for i,zi in enumerate(z):
+    #         idx_occ = np.argwhere((abs(laser.localraymap[i].z - zi) < laser.alpha/2) & (laser.localraymap[i].z < laser.zmax)).squeeze()
+    #         if np.any(idx_occ):
+    #             c_occ.append(self.c2d(x.transformFrom(laser.localraymap[i].t[:,idx_occ])))
+    
+    #         idx_free = np.argwhere(abs(laser.localraymap[i].z < zi)).squeeze()
+    #         if np.any(idx_free):
+    #             c_free.append(self.c2d(x.transformFrom(laser.localraymap[i].t[:,idx_free])))
+
+    #     return np.hstack(c_occ), np.hstack(c_free)
+
