@@ -6,7 +6,8 @@ def p2logodds(p):
 def logodds2p(l):
     return 1 - 1 / (1 + np.exp(l))
         
-def numfmt(v, x): # your custom formatter function: divide by 100.0
+def numfmt(v, x, pos): # your custom formatter function: divide by 100.0
+    #not sure why we need a third argument but evidenatly we do
     s = '{}'.format(x * v)
     return s
 

@@ -33,7 +33,7 @@ def inverse_measurement_model(sensor : laser, m : gridmap2, x : pose2, z : np.nd
         lm = x.transformFrom(np.array(dp))
         disc_lm = m.worldToMap(lm)
         c_occ = [disc_lm]
-        c_free = bresenham2(disc_x[0],disc_x[1],disc_lm[0],disc_lm[1])
+        c_free = bresenham2(int(disc_x[0]),int(disc_x[1]),int(disc_lm[0]),int(disc_lm[1]))
     return c_occ, c_free
 
 # def measurementProbability(self,x: pose2, a : np.ndarray ,z : np.ndarray, z_cov : np.ndarray)->float:

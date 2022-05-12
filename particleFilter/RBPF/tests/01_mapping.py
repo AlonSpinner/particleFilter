@@ -182,7 +182,7 @@ with plt.ion():
         
         #compute noisey map measurement
         z_perfect = worldMap.forward_measurement_model(x,sensor.angles)
-        z_cov = np.kron(np.eye(int(z_perfect.size)),Z_COV) # amount of measurements might differ depending on gt_x0
+        z_cov = np.kron(np.eye(int(z_perfect.size)),Z_COV) # amount of measurements might differ depending on x
         z_noise = np.random.multivariate_normal(z_perfect.squeeze(), z_cov).reshape(-1,1)
 
         c_occ, c_free = inverse_measurement_model(sensor,gMap,x,z_noise)
@@ -201,7 +201,7 @@ with plt.ion():
             gMap.show(ax_grid)
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
-filename = os.path.join(dir_path,'out','08_map.pickle')
+filename = os.path.join(dir_path,'out','01_map.pickle')
 file = open(filename, "wb")
 pickle.dump(gMap,file)
 file.close()
