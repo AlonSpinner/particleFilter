@@ -155,7 +155,8 @@ for p in products:
 worldMap = o3d_meshes(patches2d,rayCastingScene)
 
 #-------- create empty gridmap to be filled
-gMap = gridmap2(25,10,0.1)
+gMap = gridmap2(12,10,0.1)
+gMap.pose = pose2(9,-1,0)
 #------- laser sensor on robot
 sensor = laser(angles = np.radians(np.linspace(-180,180,50)), zmax = 2.0)
 #-------- initalize robot
@@ -187,7 +188,7 @@ with plt.ion():
         z_noise = np.random.multivariate_normal(z_perfect.squeeze(), z_cov).reshape(-1,1)
 
         c_occ, c_free = inverse_measurement_model(sensor,gMap,x,z_noise)
-        gMap.update(flatten_list(c_occ),flatten_list(c_free))
+        gMap.update(flatten_list(c_occ),flatten_list(c_free),1)
  
         #add visuals
         graphics_gt.remove()

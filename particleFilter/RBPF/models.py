@@ -1,7 +1,7 @@
 from particleFilter.geometry import pose2
 from particleFilter.RBPF.gridmaps import gridmap2
 from particleFilter.RBPF.sensors import laser
-from particleFilter.RBPF.utils import bresenham2, logodds2p
+from particleFilter.RBPF.utils import bresenham2, logodds2p, p2logodds
 import numpy as np
 
 def inverse_measurement_model(sensor : laser, m : gridmap2, x : pose2, z : np.ndarray):
@@ -51,10 +51,15 @@ def measurement_probability(sensor : laser, m : gridmap2, x : pose2, z : np.ndar
 
     #compute p(z) from distribution of 
     
+    cells_occ, cells_free = inverse_measurement_model(sensor, m, x, z)
+    
     p = 1
-    for ai,zi in zip(sensor.angles,z):
+    for cells_occ_i,cells_free_i in zip(cells_occ, cells_free):
+        #in a sense:
         #compute probabilty mass function from cells between robot and zhit (make sure its normalized)
         #sample probability of hit
-        cells_occ, cells_free = inverse_measurement_model(x,ai,zi)
-        p *= logodds2p(self.gridLogOdds[cells_occ]) / sum(logodds2p(self.gridLogOdds[cells_occ,cells_free]))
+        normalizer = sum([logodds2p(m.gridLogOdds[c[0],c[1]]) for c in cells_free_i]) + \
+            sum([logodds2p(m.gridLogOdds[c[0],c[1]]) for c in cells_occ_i])
+        c_hit = cells_occ_i[0]
+        p *= logodds2p(m.gridLogOdds[c_hit[0],c_hit[1]]) /(normalizer+1e-10)
     return p 

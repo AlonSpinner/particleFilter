@@ -5,6 +5,7 @@ from particleFilter.geometry import pose2
 from particleFilter.RBPF.gridmaps import gridmap2
 from particleFilter.RBPF.sensors import laser
 from particleFilter.RBPF.models import inverse_measurement_model, measurement_probability
+from particleFilter.RBPF.utils import flatten_list
 
 import particleFilter.plotting as plotting
 import matplotlib.pyplot as plt
@@ -154,7 +155,8 @@ for p in products:
 worldMap = o3d_meshes(patches2d,rayCastingScene)
 
 #-------- create empty gridmap to be filled
-gMap = gridmap2(25,10,0.1)
+gMap = gridmap2(12,10,0.1)
+gMap.pose = pose2(9,-1,0)
 #------- laser sensor on robot
 sensor = laser(angles = np.radians(np.linspace(-180,180,50)), zmax = 2.0)
 #-------- initalize robot
@@ -187,7 +189,7 @@ with plt.ion():
 
         c_occ, c_free = inverse_measurement_model(sensor,gMap,x,z_noise)
         print(measurement_probability(sensor, gMap, x, z_noise, z_cov))
-        gMap.update(c_occ,c_free)
+        gMap.update(flatten_list(c_occ),flatten_list(c_free),1)
  
         #add visuals
         graphics_gt.remove()
