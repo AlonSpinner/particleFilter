@@ -58,6 +58,8 @@ def measurement_probability(sensor : laser, m : gridmap2, x : pose2, z : np.ndar
         #in a sense:
         #compute probabilty mass function from cells between robot and zhit (make sure its normalized)
         #sample probability of hit
+        if np.any([not(m.cell_in_gridmap(c)) for c in cells_occ_i]) or np.any([not(m.cell_in_gridmap(c)) for c in cells_free_i]):
+            return 0
         normalizer = sum([logodds2p(m.gridLogOdds[c[0],c[1]]) for c in cells_free_i]) + \
             sum([logodds2p(m.gridLogOdds[c[0],c[1]]) for c in cells_occ_i])
         

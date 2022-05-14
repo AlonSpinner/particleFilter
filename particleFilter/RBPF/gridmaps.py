@@ -28,7 +28,7 @@ class gridmap2:
     def update(self,cells_occ, cells_free, n = 0):
         # n - distance in cells for neighbors
         for c in cells_occ:
-            if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
+            if self.cell_in_gridmap(c):
                 self.gridOcc[c[0],c[1]] += 1
                 self.gridLogOdds[c[0],c[1]] += self.log_pm_zocc 
                 
@@ -36,7 +36,7 @@ class gridmap2:
                 for cn in neighbors:
                     self.gridLogOdds[cn[0],cn[1]] += self.log_pm_zocc_neighbor 
         for c in cells_free:
-            if 0 <= c[0] < self.height and 0 <= c[1] < self.width:
+            if self.cell_in_gridmap(c):
                 self.gridFree[c[0],c[1]] += 1
                 self.gridLogOdds[c[0],c[1]] -= self.log_pm_zfree
 
@@ -78,6 +78,9 @@ class gridmap2:
 
     def get_pGrid(self):
         return logodds2p(self.gridLogOdds)
+
+    def cell_in_gridmap(self,c):
+        return (0 <= c[0] < self.height and 0 <= c[1] < self.width)
 
     def show(self,ax : plt.Axes = None):
         if ax == None:

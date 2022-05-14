@@ -19,7 +19,7 @@ class RBPF:
     def __init__(self, m : gridmap2 ,initial_poses : list[pose2], sensor : laser):
         
         self.N_PARTICLES : int = len(initial_poses) #amount of particles
-        self.particles = [particle2(ip, m) for ip in initial_poses]
+        self.particles = [particle2(ip, deepcopy(m)) for ip in initial_poses]
         self.weights : np.ndarray = np.ones(self.N_PARTICLES) * 1/self.N_PARTICLES
         self.sensor : laser = sensor
         
@@ -71,3 +71,6 @@ class RBPF:
         
         self.particles = new_particles
         self.weights = np.ones(self.N_PARTICLES) * 1/self.N_PARTICLES
+
+    def get_poses(self):
+        return [p.pose for p in self.particles]

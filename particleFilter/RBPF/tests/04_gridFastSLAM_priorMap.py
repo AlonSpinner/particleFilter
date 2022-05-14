@@ -155,8 +155,12 @@ for p in products:
 worldMap = o3d_meshes(patches2d,rayCastingScene)
 
 #-------- create empty gridmap to be filled
-gMap = gridmap2(12,10,0.1)
-gMap.pose = pose2(9,-1,0)
+dir_path = os.path.dirname(os.path.realpath(__file__))
+filename = os.path.join(dir_path,'out','01_map.pickle')
+file = open(filename, "rb")
+gMap = pickle.load(file)
+file.close()
+
 #------- laser sensor on robot
 sensor = laser(angles = np.radians(np.linspace(-180,180,50)), zmax = 2.0)
 #-------- initalize robot
@@ -164,7 +168,7 @@ x = pose2(19.4,0.6,np.pi/2) #ground truth
 Z_COV = np.array([0.01])
 U_COV = np.zeros((3,3))
 U_COV[0,0] = 0.01; U_COV[1,1] = 0.01; U_COV[2,2] = 0.01
-U_COV = U_COV/10
+U_COV = U_COV/4
 
 #----------build odometry (circle around)
 straight = [pose2(0.1,0,0)]
@@ -173,11 +177,18 @@ turnRight = [pose2(0,0,-np.pi/2/4)]
 odom = straight*15 + turnLeft*4 + straight*10*5 + turnRight*4 + straight*10*5 + turnRight*4 + straight*40 + turnRight*4 + straight*20
 
 #-------- initalize particle filter
-n_particles = 5
+n_particles = 10
 initialParticles = []
+for i in range(n_particles):
+    p_x = np.random.uniform(10,20)
+    p_y = np.random.uniform(0,8)
+    p_theta = np.random.uniform(-np.pi,np.pi)
+    initialParticles.append(pose2(p_x,p_y,p_theta))
+
 for i in range(n_particles):
     noise = np.random.multivariate_normal(np.zeros(x.size),U_COV/2)
     initialParticles.append(x + pose2(noise[0],noise[1],noise[2]))
+
 rbpf = RBPF(gMap,initialParticles,sensor)
 
 #----- prep visuals
@@ -216,6 +227,7 @@ with plt.ion():
 
         plt.pause(0.01)
         if i%5==0:
+            # ax_grid.cla()
             rbpf.particles[np.argmax(rbpf.weights)].map.show(ax_grid)
 
 plt.show()
