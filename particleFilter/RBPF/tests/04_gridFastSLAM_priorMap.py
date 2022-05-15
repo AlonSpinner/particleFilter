@@ -6,6 +6,7 @@ from particleFilter.RBPF.gridmaps import gridmap2
 from particleFilter.RBPF.sensors import laser
 from particleFilter.RBPF.models import inverse_measurement_model
 from particleFilter.RBPF.gridRBPF import RBPF
+from particleFilter.RBPF.utils import p2logodds
 
 import particleFilter.plotting as plotting
 import matplotlib.pyplot as plt
@@ -159,6 +160,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 filename = os.path.join(dir_path,'out','01_map.pickle')
 file = open(filename, "rb")
 gMap = pickle.load(file)
+gMap.gridLogOdds[50:80,60:90] = p2logodds(0.99)
 file.close()
 
 #------- laser sensor on robot
@@ -177,6 +179,7 @@ turnRight = [pose2(0,0,-np.pi/2/4)]
 odom = straight*15 + turnLeft*4 + straight*10*5 + turnRight*4 + straight*10*5 + turnRight*4 + straight*40 + turnRight*4 + straight*20
 
 #-------- initalize particle filter
+np.random.default_rng(3)
 n_particles = 10
 initialParticles = []
 for i in range(n_particles):
@@ -198,6 +201,7 @@ graphics_meas = ax_world.scatter([],[],s = 10, color = 'r')
 graphics_particles = plotting.plot_pose2(ax_world, rbpf.get_poses(), scale = rbpf.weights)
 worldMap.show(ax_world)
 graphics_gt = plotting.plot_pose2(ax_world,[x],color = 'r')
+graphics_best_particle_pose = plotting.plot_pose2(ax_grid,[rbpf.particles[0].pose])
 plt.draw(); plt.pause(0.5)
 
 #------ run simulation
@@ -226,9 +230,15 @@ with plt.ion():
         graphics_meas.set_offsets(np.hstack((dx_meas,dy_meas)))
 
         plt.pause(0.01)
-        if i%5==0:
-            # ax_grid.cla()
-            rbpf.particles[np.argmax(rbpf.weights)].map.show(ax_grid)
+        if i%1==0:
+            best = np.argmax(rbpf.weights)
+            graphics_best_particle_pose.remove()
+            bestpose =  rbpf.particles[best].map.pose - rbpf.particles[best].pose
+            bestpose.x *=10 #temporary fixing for tkr.FuncFormatter affecting grid scaling
+            bestpose.y *=10
+
+            graphics_best_particle_pose = plotting.plot_pose2(ax_grid,[bestpose], color = 'b')
+            rbpf.particles[best].map.show(ax_grid)
 
 plt.show()
 
